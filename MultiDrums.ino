@@ -21,6 +21,8 @@
 #define SNARE_DRUM 1
 #define CLOSED_HI_HAT 2
 #define SAMPLES 3
+#define KICK_ENGINE_ORIGINAL 0
+#define KICK_ENGINE_909 1
 
 #define CHORD_POT_PIN 9 // pin for Chord pot
 #define CHORD_CV_PIN 6 // pin for Chord CV 
@@ -48,6 +50,7 @@ int param1 = 64;
 int param2 = 64;
 int param[4] = {64, 64, 64, 64};
 int instrumentsParams[4][4]; // [instrument][paramNumber]
+int kickEngineParams[2][4];
 int previousInstrumentsParams[4][4]; // [instrument][paramNumber]
 int frame;
 int dividedFrame;
@@ -78,6 +81,10 @@ boolean controlPage2 = false;
 boolean hasBeenLoad = false;
 int DIVIDED_EEPROM_Mode_Frame = 0;
 int EEPROM_Mode_Frame = 0;
+byte kickEngine = KICK_ENGINE_ORIGINAL;
+boolean kickControlsHoldUntilMove = false;
+int lastKickParam1 = -1;
+int lastKickParam2 = -1;
 
 Brain                    voice1;
 AudioPlayMemory          sound0;
@@ -160,6 +167,12 @@ void loop() {
        else
        {
           instrument = 0;
+       }
+       instrument = BASS_DRUM;
+       for (int i = 0; i < 4; i++)
+       {
+          kickEngineParams[KICK_ENGINE_ORIGINAL][i] = instrumentsParams[BASS_DRUM][i];
+          kickEngineParams[KICK_ENGINE_909][i] = instrumentsParams[BASS_DRUM][i];
        }
        sampleNumber2 = instrumentsParams[instrument][3]/20;
        if (sampleNumber2 == 0)
@@ -245,5 +258,3 @@ void loop() {
   Serial.println("all=");
   Serial.println(AudioProcessorUsage());*/
 }
-
-

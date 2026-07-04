@@ -45,7 +45,17 @@ void checkButton(){
             startCounter = false;
             if ( shiftTimer < 3000 )
             {
-                instrument++;
+                if (kickEngine == KICK_ENGINE_ORIGINAL)
+                {
+                  kickEngine = KICK_ENGINE_909;
+                }
+                else
+                {
+                  kickEngine = KICK_ENGINE_ORIGINAL;
+                }
+                kickControlsHoldUntilMove = true;
+                lastKickParam1 = param1;
+                lastKickParam2 = param2;
             }
             shiftTimer  = 0;
             modeChanged = false;
@@ -61,12 +71,16 @@ void checkButton(){
         {
             controlPage2 = true;
         }
+        kickControlsHoldUntilMove = true;
+        lastKickParam1 = param1;
+        lastKickParam2 = param2;
         modeChanged = true;
     }
     if (instrument >= 4)
     {
         instrument = 0;
     }
+    instrument = BASS_DRUM;
     if (startCounter == true)
     {
       shiftTimer ++;
@@ -146,10 +160,20 @@ void controlInstrumentParams(){
     // HH: 39 tune , 40 decay, 41 open decay, 42 noise balance
    if (instrument == BASS_DRUM)
    {
-      voice1.controlChange(30, instrumentsParams[instrument][0], 1);
-      voice1.controlChange(31, instrumentsParams[instrument][1], 1);
-      voice1.controlChange(33, instrumentsParams[instrument][2], 1);
-      voice1.controlChange(34, instrumentsParams[instrument][3], 1);
+      int *kickParams = kickEngineParams[kickEngine];
+      voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
+      if (kickEngine == KICK_ENGINE_ORIGINAL)
+      {
+        int matchedOriginalTune = (kickParams[0] - 27) / 2;
+        voice1.controlChange(30, constrain(matchedOriginalTune, 0, 127), 1);
+      }
+      else
+      {
+        voice1.controlChange(30, kickParams[0], 1);
+      }
+      voice1.controlChange(31, kickParams[1], 1);
+      voice1.controlChange(33, kickParams[2], 1);
+      voice1.controlChange(34, kickParams[3], 1);
    }
    else if (instrument == SNARE_DRUM)
    {
@@ -171,6 +195,53 @@ void setControlValues(){
    
     if (buttonState == 0)
     {
+        if (instrument == BASS_DRUM)
+        {
+          int firstParam = controlPage2 == false ? 0 : 2;
+          int secondParam = firstParam + 1;
+          if (kickControlsHoldUntilMove == true)
+          {
+              boolean param1Moved = abs(param1 - lastKickParam1) > 1;
+              boolean param2Moved = abs(param2 - lastKickParam2) > 1;
+              if (param1Moved)
+              {
+                  kickEngineParams[kickEngine][firstParam] = param1;
+                  lastKickParam1 = param1;
+              }
+              if (param2Moved)
+              {
+                  kickEngineParams[kickEngine][secondParam] = param2;
+                  lastKickParam2 = param2;
+              }
+              if (param1Moved || param2Moved)
+              {
+                  kickControlsHoldUntilMove = false;
+              }
+          }
+          else
+          {
+              kickEngineParams[kickEngine][firstParam] = param1;
+              kickEngineParams[kickEngine][secondParam] = param2;
+              lastKickParam1 = param1;
+              lastKickParam2 = param2;
+          }
+          if (firstParam == 0)
+          {
+              kickEngineParams[KICK_ENGINE_ORIGINAL][0] = kickEngineParams[kickEngine][0];
+              kickEngineParams[KICK_ENGINE_909][0] = kickEngineParams[kickEngine][0];
+          }
+          if (controlPage2 == false)
+          {
+              instrumentsParams[instrument][0] = kickEngineParams[kickEngine][0];
+              instrumentsParams[instrument][1] = kickEngineParams[kickEngine][1];
+          }
+          else
+          {
+              instrumentsParams[instrument][2] = kickEngineParams[kickEngine][2];
+              instrumentsParams[instrument][3] = kickEngineParams[kickEngine][3];
+          }
+          return;
+        }
         for (int i = 0; i < 2; i++)
         {
            if (controlPage2 == false)
@@ -271,6 +342,13 @@ void selectInstrument(){
       digitalWrite(LED0, LOW);
     }
     voice1.controlChange(28, currentInstrument , 1);
+    if (instrument == BASS_DRUM)
+    {
+      digitalWrite(LED3, kickEngine == KICK_ENGINE_ORIGINAL ? HIGH : LOW);
+      digitalWrite(LED2, kickEngine == KICK_ENGINE_909 ? HIGH : LOW);
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED0, LOW);
+    }
 }
 
 void trigInstrument(){
@@ -601,5 +679,3 @@ void setReverb(){
   }
  }
 */
-
-
