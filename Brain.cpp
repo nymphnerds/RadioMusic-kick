@@ -620,7 +620,7 @@ fix16_t Kick909_clip(fix16_t x){
    return x;
 }
 
-fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI){
+fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI, fix16_t accentI){
    if(gateI >= 0x8000 /* 0.500000 */){
       _ctx.gate = 1;
    }
@@ -632,10 +632,25 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
    uint8_t edge;
    edge = Kick_edge(_ctx._edge,_ctx.gate);
    if(edge){
+      fix16_t velScale;
+      if(accentI <= 0x4b0000 /* 75.000000 */){
+         velScale = 0x599a /* 0.350006 */ + fix_mul(accentI,0x238 /* 0.008667 */);
+      }
+      else
+      {
+         velScale = 0x10000 /* 1.000000 */ + fix_mul((accentI - 0x4b0000 /* 75.000000 */),0x1b9 /* 0.006729 */);
+      }
+      fix16_t accentAboveMid;
+      accentAboveMid = accentI - 0x4b0000 /* 75.000000 */;
+      if(accentAboveMid < 0x0 /* 0.000000 */){
+         accentAboveMid = 0x0 /* 0.000000 */;
+      }
+      fix16_t accentTransient;
+      accentTransient = (accentAboveMid >> 7);
       _ctx.phase = fix_mul(hardnessI,0x50 /* 0.001221 */);
-      _ctx.bodyEnv = 0x13000 /* 1.187500 */;
-      _ctx.pitchEnv = 0x10000 /* 1.000000 */;
-      _ctx.clickEnv = 0x10000 /* 1.000000 */;
+      _ctx.bodyEnv = fix_mul(0x13000 /* 1.187500 */,velScale) + (accentTransient >> 5);
+      _ctx.pitchEnv = fix_mul(0x10000 /* 1.000000 */,velScale) + (accentTransient >> 2);
+      _ctx.clickEnv = fix_mul(0x10000 /* 1.000000 */,velScale) + (accentTransient >> 1);
    }
 
    fix16_t tuneBase;
@@ -1032,6 +1047,10 @@ void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
    fix_init_array(5,0x0 /* 0.000000 */,_ctx.snareParam);
    fix_init_array(5,0x0 /* 0.000000 */,_ctx.kickParam);
    fix_init_array(6,0x0 /* 0.000000 */,_ctx.hiHatParam);
+   _ctx.kickAccent = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickAmount = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickEnv = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickNoise = 22222;
    _ctx.kick909Mode = 0;
    HiHat__ctx_type_11_init(_ctx._inst166);
    Snare__ctx_type_11_init(_ctx._inst163);
@@ -1051,11 +1070,39 @@ fix16_t Brain_process(Brain__ctx_type_0 &_ctx, fix16_t input){
    _cond_218 = (_ctx.voice1Sound == 0);
    if(_cond_218){
       if(_ctx.kick909Mode){
-         _ctx.voice1 = Kick909_process(_ctx._inst161,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4]);
+         _ctx.voice1 = Kick909_process(_ctx._inst161,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickAccent);
       }
       else
       {
          _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4]);
+      }
+      if(!(_ctx.kick909Mode))
+      {
+         fix16_t kickVelocity;
+         if(_ctx.kickAccent <= 0x4b0000 /* 75.000000 */){
+            kickVelocity = 0x599a /* 0.350006 */ + fix_mul(_ctx.kickAccent,0x238 /* 0.008667 */);
+         }
+         else
+         {
+            kickVelocity = 0x10000 /* 1.000000 */ + fix_mul((_ctx.kickAccent - 0x4b0000 /* 75.000000 */),0x1b9 /* 0.006729 */);
+         }
+         _ctx.voice1 = fix_mul(_ctx.voice1,kickVelocity);
+         if(_ctx.kick808ClickEnv > 0x0 /* 0.000000 */){
+            _ctx.kick808ClickNoise = ((_ctx.kick808ClickNoise * 17389) + 7919) & 32767;
+            fix16_t kick808Click;
+            if(_ctx.kick808ClickNoise & 1){
+               kick808Click = (_ctx.kick808ClickEnv >> 2);
+            }
+            else
+            {
+               kick808Click = -(_ctx.kick808ClickEnv >> 2);
+            }
+            _ctx.voice1 = _ctx.voice1 + kick808Click;
+            _ctx.kick808ClickEnv = _ctx.kick808ClickEnv - 0x1000 /* 0.062500 */;
+            if(_ctx.kick808ClickEnv < 0x0 /* 0.000000 */){
+               _ctx.kick808ClickEnv = 0x0 /* 0.000000 */;
+            }
+         }
       }
    }
    else
@@ -1099,6 +1146,9 @@ void Brain_noteOn(Brain__ctx_type_0 &_ctx, int note, int velocity, int channel){
    _cond_222 = (note == 32);
    if(_cond_222){
       _ctx.kickParam[0] = 0x10000 /* 1.000000 */;
+      if(!(_ctx.kick909Mode)){
+         _ctx.kick808ClickEnv = (_ctx.kick808ClickAmount >> 7);
+      }
    }
    uint8_t _cond_223;
    _cond_223 = (note == 33);
@@ -1286,6 +1336,12 @@ void Brain_controlChange(Brain__ctx_type_0 &_ctx, int control, int value, int ch
    if(control == 43){
       _ctx.kick909Mode = (value > 0);
    }
+   if(control == 44){
+      _ctx.kickAccent = int_to_fix(value);
+   }
+   if(control == 45){
+      _ctx.kick808ClickAmount = int_to_fix(value);
+   }
 }
 
 void Brain_default_init(Brain__ctx_type_0 &_output_){
@@ -1310,6 +1366,10 @@ void Brain_default(Brain__ctx_type_0 &_ctx){
    _ctx.hiHatParam[3] = 0x200000 /* 32.000000 */;
    _ctx.hiHatParam[4] = 0x200000 /* 32.000000 */;
    _ctx.hiHatParam[5] = 0x200000 /* 32.000000 */;
+   _ctx.kickAccent = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickAmount = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickEnv = 0x0 /* 0.000000 */;
+   _ctx.kick808ClickNoise = 22222;
    _ctx.kick909Mode = 0;
 }
 

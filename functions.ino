@@ -1,4 +1,24 @@
 
+int originalKickAccentCurve(int accent)
+{
+    accent = constrain(accent, 0, 127);
+    if (accent <= 75)
+    {
+        return (accent * 40) / 75;
+    }
+    return 40 + (((accent - 75) * 87) / 52);
+}
+
+int kick909AccentCurve(int accent)
+{
+    accent = constrain(accent, 0, 127);
+    if (accent <= 75)
+    {
+        return (accent * 30) / 75;
+    }
+    return 30 + (((accent - 75) * 30) / 52);
+}
+
 void checkInterface(){
     // Read pots + CVs
     int param1Pot = analogRead(CHORD_POT_PIN); 
@@ -7,7 +27,18 @@ void checkInterface(){
     param2CV = analogRead(ROOT_CV_PIN); 
     int param1Raw;
     int param2Raw;
-    if (instrument != 2 && instrument != 3 )
+    if (instrument == BASS_DRUM)
+    {
+       param1Raw = param1Pot + param1CV; 
+       param1Raw = constrain(param1Raw, 0, ADC_MAX_VAL - 1);
+       param2Raw = param2Pot;
+       if (param2CV > 96)
+       {
+          kickAccentCvSeen = true;
+       }
+       kickAccent = kickAccentCvSeen ? constrain(param2CV / 64.5, 0, 127) : 75;
+    }
+    else if (instrument != 2 && instrument != 3 )
     {
         // cv pot and input summing
        param1Raw = param1Pot + param1CV; 
@@ -171,9 +202,31 @@ void controlInstrumentParams(){
       {
         voice1.controlChange(30, kickParams[0], 1);
       }
-      voice1.controlChange(31, kickParams[1], 1);
-      voice1.controlChange(33, kickParams[2], 1);
-      voice1.controlChange(34, kickParams[3], 1);
+      int effectiveKickAccent = kickEngine == KICK_ENGINE_909 ? kick909AccentCurve(kickLatchedAccent) : originalKickAccentCurve(kickLatchedAccent);
+      int accentAboveNormal = effectiveKickAccent > 75 ? effectiveKickAccent - 75 : 0;
+      int accentBelowNormal = effectiveKickAccent < 75 ? 75 - effectiveKickAccent : 0;
+      int accentPitch = kickEngine == KICK_ENGINE_909 ? 0 : accentAboveNormal / 3;
+      int accentHardness = kickEngine == KICK_ENGINE_909 ? 0 : accentAboveNormal / 4;
+      int accentClick = kickEngine == KICK_ENGINE_909 ? 0 : accentBelowNormal;
+      int gateDecay = kickParams[1];
+      if (activeTrig && kickGateTimer > 50)
+      {
+        kickGateDecayBoost = constrain((int)(kickGateTimer - 50) / 3, 0, 127);
+      }
+      if (kickEngine == KICK_ENGINE_909)
+      {
+        gateDecay = constrain(gateDecay + (kickGateDecayBoost * 3), 0, 127);
+      }
+      else
+      {
+        gateDecay = constrain(gateDecay + (kickGateDecayBoost * 2) + (accentAboveNormal / 8) - (accentBelowNormal / 2), 0, 127);
+      }
+      voice1.controlChange(31, gateDecay, 1);
+      int pitchSweep = kickParams[2];
+      voice1.controlChange(33, constrain(pitchSweep + accentPitch, 0, 127), 1);
+      voice1.controlChange(34, constrain(kickParams[3] + accentHardness, 0, 127), 1);
+      voice1.controlChange(44, effectiveKickAccent, 1);
+      voice1.controlChange(45, accentClick, 1);
    }
    else if (instrument == SNARE_DRUM)
    {
@@ -357,6 +410,21 @@ void trigInstrument(){
     int currentInstrument = 32 + instrument;
     if (digitalRead (RESET_CV) == 1 && activeTrig == false && instrument < 3 )
     {
+      if (instrument == BASS_DRUM)
+      {
+        int triggerAccentCV = analogRead(ROOT_CV_PIN);
+        if (triggerAccentCV > 96)
+        {
+          kickAccentCvSeen = true;
+        }
+        kickLatchedAccent = kickAccentCvSeen ? constrain(triggerAccentCV / 64.5, 0, 127) : 75;
+        int triggerEffectiveAccent = kickEngine == KICK_ENGINE_909 ? kick909AccentCurve(kickLatchedAccent) : originalKickAccentCurve(kickLatchedAccent);
+        voice1.controlChange(44, triggerEffectiveAccent, 1);
+        int triggerClick = kickEngine == KICK_ENGINE_909 || triggerEffectiveAccent >= 75 ? 0 : 75 - triggerEffectiveAccent;
+        voice1.controlChange(45, triggerClick, 1);
+        kickGateTimer = 0;
+        kickGateDecayBoost = 0;
+      }
       voice1.noteOn(currentInstrument ,127,1);
       activeTrig = true;
     }

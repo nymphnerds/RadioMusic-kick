@@ -269,7 +269,7 @@ void Kick909__ctx_type_0_init(Kick909__ctx_type_0 &_output_);
 
 void Kick909_process_init(Kick909__ctx_type_0 &_output_);
 
-fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI);
+fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI, fix16_t accentI);
 
 typedef struct HiHat__ctx_type_0 {
    fix16_t pre_x;
@@ -419,6 +419,10 @@ typedef struct Brain__ctx_type_0 {
    fix16_t snareParam[5];
    fix16_t kickParam[5];
    fix16_t hiHatParam[6];
+   fix16_t kickAccent;
+   fix16_t kick808ClickAmount;
+   fix16_t kick808ClickEnv;
+   int kick808ClickNoise;
    int kick909Mode;
    HiHat__ctx_type_11 _inst166;
    Snare__ctx_type_11 _inst163;

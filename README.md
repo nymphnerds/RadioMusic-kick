@@ -1,78 +1,124 @@
 # RadioMusic Kick
 
-Kick-only firmware for the Music Thing Modular Radio Music / Chord Organ hardware, based on HoRaMusic's RadioMusic-MultiDrums firmware.
+Kick-only firmware for Music Thing Modular Radio Music / Radio Station hardware.
 
-This fork turns the module into a two-engine kick voice:
+RadioMusic Kick turns the module into a two-engine drum voice:
 
-- an original analog-modelled kick engine from the upstream firmware
-- a new 909-inspired kick engine added inside the existing `Brain` DSP path
+- **Original**: a rounded, boomy, 808-ish kick based on the upstream MultiDrums bass drum
+- **909**: a punchier synthesized kick with a sharper transient and more forward body
 
-The goal is immediate playability: one trigger input, two kick characters, linked tuning, and no menu diving beyond a short engine toggle and a long page toggle.
+The firmware is designed for fast use in a modular patch: trigger in, audio out, one button to switch kick engines, and a second page for deeper tone shaping.
 
 ## Flashing
 
-Flash the included firmware hex:
+Flash the included firmware file:
 
 ```text
 MultiDrums.hex
 ```
 
-The project is currently built for the Teensy 3.1 / 3.2 target used by the Radio Music / Chord Organ platform.
+Current build:
 
-## Operation
+```text
+Target: teensy:avr:teensy31
+SHA256: b2ea1718b714e289307cbd330f206c0d0c065abfe4ab7c2d2b8ad692f14489d0
+```
 
-Patch a trigger or gate into the normal trigger input. Audio comes from the normal module output.
+Only one `.hex` file should be present in the project root.
 
-| Action | Result |
-| --- | --- |
-| Trigger input | Fires the selected kick engine |
-| Short button tap | Toggle original / 909 engine |
-| Long button hold | Toggle parameter page |
-| LED3 on | Original kick engine |
-| LED2 on | 909 kick engine |
-| Flashing LED | Page 2 is active |
+## Quick Start
+
+1. Patch a trigger or gate into the reset/trigger input.
+2. Patch the module output to your mixer.
+3. Use a short button tap to switch between Original and 909.
+4. Use the Station and Start knobs to tune and shape the kick.
+5. Optional: patch velocity/accent CV into Start CV.
 
 ## Controls
 
-The two front-panel controls are live. The CV inputs are still summed with the pots, so the pot acts as an offset if CV is used.
+The firmware is always in kick mode.
 
-| Page | Control 1 | Control 2 |
-| --- | --- | --- |
-| Page 1 | Tune | Decay |
-| Page 2 | Pitch sweep | Punch / click / hardness |
+| Action | Result |
+| --- | --- |
+| Trigger/gate input | Fires the selected kick |
+| Short button tap | Toggle Original / 909 |
+| Long button hold | Toggle page 1 / page 2 |
+| LED3 on | Original engine selected |
+| LED2 on | 909 engine selected |
+| Flashing reset LED | Page 2 active |
 
-Tune is linked between the original and 909 engines so switching engines keeps the kick in the same musical area. The engines still have separate decay, sweep, and punch behaviour.
+## Parameter Pages
 
-## Engines
+| Page | Station knob / CV | Start knob | Start CV |
+| --- | --- | --- | --- |
+| Page 1 | Tune | Decay | Accent / velocity |
+| Page 2 | Pitch sweep | Punch / hardness | Accent / velocity |
+
+Notes:
+
+- Tune is shared between both engines, so switching engines stays in the same musical range.
+- Decay, pitch sweep, and punch/hardness are stored separately for each engine.
+- Start CV is always accent/velocity. It does not change function on page 2.
+- Accent is latched when the kick triggers, so CV changes do not wobble the tail of a hit.
+- With no Start CV patched, the module plays at a normal accent level.
+
+## Accent And Velocity
+
+Start CV is intended for a sequencer velocity CV, such as OXI One velocity output.
+
+The two engines respond differently:
 
 ### Original
 
-The original engine is the upstream bass drum voice, kept in the generated `Brain` DSP code path. It uses the existing modelled kick circuit behaviour and parameter controls.
+The Original engine uses a wide dynamic response:
+
+- low velocity: softer, shorter, with a small click transient
+- medium velocity: natural main kick tone
+- high velocity: louder, slightly longer, with extra pitch movement and punch
+
+Longer trigger gates can extend decay beyond the knob setting.
 
 ### 909
 
-The 909 engine is a separate fixed-point kick processor added beside the original kick in `Brain.cpp`. It uses:
+The 909 engine uses a tighter accent range so high velocity stays punchy without falling apart.
+
+- low velocity: lighter body and transient
+- medium velocity: focused 909 punch
+- high velocity: full accent, still controlled
+
+Longer trigger gates extend 909 decay more strongly than the Original engine.
+
+## Engines
+
+### Original Engine
+
+The Original engine keeps the upstream synthesized bass drum path from MultiDrums. It is the rounder, deeper voice and works well for longer, weightier kicks.
+
+This fork adds performance shaping around it:
+
+- trigger-latched accent
+- velocity-sensitive level and decay
+- separate low-velocity click transient
+- restrained high-velocity pitch sweep
+- trigger-gate decay extension
+
+### 909 Engine
+
+The 909 engine is a separate fixed-point synthesized kick running inside the existing DSP path.
+
+It uses:
 
 - sine body oscillator
-- fast pitch-drop envelope
-- short noise click transient
-- drive / soft clipping
-- low-pass shaping through the existing kick filter style
+- fast pitch drop
+- noise click transient
+- simple drive / soft clipping
+- low-pass shaping
 
-It does not use samples and it does not add a separate Teensy Audio `AudioStream`; it runs inside the existing `Brain::update()` path so the audio routing stays stable on Teensy 3.x.
-
-## Current Tuning Checkpoint
-
-This build is the current "spot on" checkpoint:
-
-- 909 pitch raised by ear until it matched the original kick well
-- linked tune retained
-- original kick tune mapped against the shared tune
-- one branch, one flashable hex
+It is not sample-based.
 
 ## Build Notes
 
-The firmware has been compiled with Arduino CLI / Teensyduino for:
+Built with Arduino CLI / Teensyduino for:
 
 ```text
 teensy:avr:teensy31
@@ -81,14 +127,18 @@ teensy:avr:teensy31
 Most recent build size:
 
 ```text
-Sketch uses 172776 bytes (65%) of program storage.
-Global variables use 11824 bytes (18%) of dynamic memory.
+Sketch uses 174120 bytes (66%) of program storage.
+Global variables use 11856 bytes (18%) of dynamic memory.
+```
+
+Developer tuning notes are in:
+
+```text
+docs/handoff.md
 ```
 
 ## Credits
 
-Original MultiDrums firmware by HoRaMusic:
+Based on HoRaMusic's RadioMusic-MultiDrums firmware:
 
 https://github.com/HoRaMusic/RadioMusic-MultiDrums
-
-This fork keeps the upstream kick engine intact and adds the kick-only workflow plus the 909-inspired engine for private research and performance use.
