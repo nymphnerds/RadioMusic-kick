@@ -8,7 +8,7 @@ This file records the current state of the kick-only Radio Music / Radio Station
 
 The current firmware is a two-engine kick module:
 
-- original upstream kick engine, treated as the 808-ish engine
+- 808 engine, based on the upstream kick voice
 - custom 909-inspired engine, currently considered the keeper sound
 
 The current flashable file is:
@@ -21,7 +21,7 @@ SHA256: b2ea1718b714e289307cbd330f206c0d0c065abfe4ab7c2d2b8ad692f14489d0
 Current branch:
 
 ```text
-kick-only-synth
+master
 ```
 
 Do not create extra branches or extra hex names for normal tuning iterations. Keep the project to one branch and one flashable `MultiDrums.hex`.
@@ -49,9 +49,9 @@ The firmware forces `instrument = BASS_DRUM`.
 
 Button behavior:
 
-- short tap toggles original / 909 engine
+- short tap toggles 808 / 909 engine
 - long hold toggles page 1 / page 2
-- LED3 means original engine
+- LED3 means 808 engine
 - LED2 means 909 engine
 - flashing reset LED means page 2
 
@@ -69,7 +69,7 @@ kickEngineParams[KICK_ENGINE_ORIGINAL][0] = kickEngineParams[kickEngine][0];
 kickEngineParams[KICK_ENGINE_909][0] = kickEngineParams[kickEngine][0];
 ```
 
-The original engine tune is internally matched with:
+The 808 engine tune is internally matched with:
 
 ```cpp
 int matchedOriginalTune = (kickParams[0] - 27) / 2;
@@ -89,7 +89,7 @@ boolean kickAccentCvSeen = false;
 
 If no real Start CV is seen after boot, accent defaults to `75` so the module produces a normal hit when unpatched.
 
-### Original / 808 Curve
+### 808 Curve
 
 Function:
 
@@ -113,9 +113,9 @@ external 75  -> internal 40
 external 127 -> internal 127
 ```
 
-Reason: by ear, the original/808 kick sounded good around old internal velocity `40`; that should now happen at OXI velocity `75`.
+Reason: by ear, the 808 kick sounded good around old internal velocity `40`; that should now happen at OXI velocity `75`.
 
-Additional original/808 accent shaping in `controlInstrumentParams()`:
+Additional 808 accent shaping in `controlInstrumentParams()`:
 
 ```cpp
 accentPitch = accentAboveNormal / 3;
@@ -167,7 +167,7 @@ if (activeTrig && kickGateTimer > 50)
 
 Current scaling:
 
-- original/808: `kickGateDecayBoost * 2`
+- 808: `kickGateDecayBoost * 2`
 - 909: `kickGateDecayBoost * 3`
 
 Goal:
@@ -190,11 +190,11 @@ Main tuning files:
   - globals for engine, accent latch, gate timer
   - initial loading into `kickEngineParams`
 - `Brain.cpp`
-  - original generated `Kick_process()`
+  - 808 generated `Kick_process()`
   - custom `Kick909_process()`
-  - original/808 output velocity scaling
-  - original/808 separate low-velocity click transient
-  - CC 43 engine mode, CC 44 accent, CC 45 original/808 click
+  - 808 output velocity scaling
+  - 808 separate low-velocity click transient
+  - CC 43 engine mode, CC 44 accent, CC 45 808 click
 - `Brain.h`
   - `Kick909__ctx_type_0`
   - added `kickAccent`, `kick808ClickAmount`, `kick808ClickEnv`, `kick808ClickNoise`
@@ -225,8 +225,8 @@ Preserve unless explicitly changing:
 
 - 909 core sound is the keeper
 - 909 accent full range should top out around internal `60`
-- original/808 external `75` should stay near old internal `40`
-- low-velocity original/808 click should remain a separate transient, not hardness
+- 808 external `75` should stay near old internal `40`
+- low-velocity 808 click should remain a separate transient, not hardness
 - normal short trigger should follow the decay knob
 - long gate should extend decay
 

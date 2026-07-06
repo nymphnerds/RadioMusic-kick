@@ -4,7 +4,7 @@ Kick-only firmware for Music Thing Modular Radio Music / Radio Station hardware.
 
 RadioMusic Kick turns the module into a two-engine drum voice:
 
-- **Original**: a rounded, boomy, 808-ish kick based on the upstream MultiDrums bass drum
+- **808**: a rounded, boomy kick based on the upstream MultiDrums bass drum
 - **909**: a punchier synthesized kick with a sharper transient and more forward body
 
 The firmware is designed for fast use in a modular patch: trigger in, audio out, one button to switch kick engines, and a second page for deeper tone shaping.
@@ -30,7 +30,7 @@ Only one `.hex` file should be present in the project root.
 
 1. Patch a trigger or gate into the reset/trigger input.
 2. Patch the module output to your mixer.
-3. Use a short button tap to switch between Original and 909.
+3. Use a short button tap to switch between 808 and 909.
 4. Use the Station and Start knobs to tune and shape the kick.
 5. Optional: patch velocity/accent CV into Start CV.
 
@@ -41,9 +41,9 @@ The firmware is always in kick mode.
 | Action | Result |
 | --- | --- |
 | Trigger/gate input | Fires the selected kick |
-| Short button tap | Toggle Original / 909 |
+| Short button tap | Toggle 808 / 909 |
 | Long button hold | Toggle page 1 / page 2 |
-| LED3 on | Original engine selected |
+| LED3 on | 808 engine selected |
 | LED2 on | 909 engine selected |
 | Flashing reset LED | Page 2 active |
 
@@ -68,9 +68,9 @@ Start CV is intended for a sequencer velocity CV, such as OXI One velocity outpu
 
 The two engines respond differently:
 
-### Original
+### 808
 
-The Original engine uses a wide dynamic response:
+The 808 engine uses a wide dynamic response:
 
 - low velocity: softer, shorter, with a small click transient
 - medium velocity: natural main kick tone
@@ -86,13 +86,13 @@ The 909 engine uses a tighter accent range so high velocity stays punchy without
 - medium velocity: focused 909 punch
 - high velocity: full accent, still controlled
 
-Longer trigger gates extend 909 decay more strongly than the Original engine.
+Longer trigger gates extend 909 decay more strongly than the 808 engine.
 
 ## Engines
 
-### Original Engine
+### 808 Engine
 
-The Original engine keeps the upstream synthesized bass drum path from MultiDrums. It is the rounder, deeper voice and works well for longer, weightier kicks.
+The 808 engine keeps the upstream synthesized bass drum path from MultiDrums. It is the rounder, deeper voice and works well for longer, weightier kicks.
 
 This fork adds performance shaping around it:
 
