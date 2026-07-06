@@ -259,6 +259,7 @@ typedef struct Kick909__ctx_type_0 {
    fix16_t clickEnv;
    fix16_t bodyRate;
    int noise;
+   int gateSamples;
    Kick__ctx_type_3 _edge;
    Kick__ctx_type_5 _lp;
 } Kick909__ctx_type_0;

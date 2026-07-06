@@ -21,7 +21,8 @@ Current build:
 
 ```text
 Target: teensy:avr:teensy31
-SHA256: b2ea1718b714e289307cbd330f206c0d0c065abfe4ab7c2d2b8ad692f14489d0
+Version: 1.0.2
+SHA256: 1bfe8e0f1933a9e921d251efa0f1385e19c58c5ac1deac809a40c93a7fbe1d69
 ```
 
 Only one `.hex` file should be present in the project root.
@@ -86,7 +87,7 @@ The 909 engine uses a tighter accent range so high velocity stays punchy without
 - medium velocity: focused 909 punch
 - high velocity: full accent, still controlled
 
-Longer trigger gates extend 909 decay more strongly than the 808 engine.
+Longer trigger gates push the 909 into a longer, bassier body while a forced gain rolloff keeps it decaying instead of becoming a flat held tone.
 
 ## Engines
 
@@ -113,6 +114,7 @@ It uses:
 - noise click transient
 - simple drive / soft clipping
 - low-pass shaping
+- held-gate body extension with natural rolloff
 
 It is not sample-based.
 
@@ -127,7 +129,7 @@ teensy:avr:teensy31
 Most recent build size:
 
 ```text
-Sketch uses 174120 bytes (66%) of program storage.
+Sketch uses 174056 bytes (66%) of program storage.
 Global variables use 11856 bytes (18%) of dynamic memory.
 ```
 

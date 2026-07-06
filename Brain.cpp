@@ -593,6 +593,7 @@ void Kick909__ctx_type_0_init(Kick909__ctx_type_0 &_output_){
    _ctx.clickEnv = 0x0 /* 0.000000 */;
    _ctx.bodyRate = 0x50 /* 0.001221 */;
    _ctx.noise = 22222;
+   _ctx.gateSamples = 0;
    Kick__ctx_type_3_init(_ctx._edge);
    Kick__ctx_type_5_init(_ctx._lp);
    _output_ = _ctx;
@@ -627,6 +628,16 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
    else
    {
       _ctx.gate = 0;
+   }
+
+   if(_ctx.gate){
+      if(_ctx.gateSamples < 32000){
+         _ctx.gateSamples = _ctx.gateSamples + 1;
+      }
+   }
+   else
+   {
+      _ctx.gateSamples = 0;
    }
 
    uint8_t edge;
@@ -678,6 +689,9 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
 
    fix16_t bodyFall;
    bodyFall = fix_div(0x10000 /* 1.000000 */,((decayI << 7) + 0x240000 /* 36.000000 */));
+   if(_ctx.gate && _ctx.gateSamples > 512){
+      bodyFall = (bodyFall >> 4) + (_ctx.bodyEnv >> 13);
+   }
    _ctx.bodyEnv = _ctx.bodyEnv - bodyFall;
    if(_ctx.bodyEnv < 0x0 /* 0.000000 */){
       _ctx.bodyEnv = 0x0 /* 0.000000 */;

@@ -1,6 +1,6 @@
 # RadioMusic Kick Handoff
 
-Date: 2026-07-06
+Date: 2026-07-07
 
 This file records the current state of the kick-only Radio Music / Radio Station firmware so future tuning can continue without rediscovering the same hardware behavior.
 
@@ -15,7 +15,7 @@ The current flashable file is:
 
 ```text
 /home/nymph/RadioMusic-MultiDrums/MultiDrums.hex
-SHA256: b2ea1718b714e289307cbd330f206c0d0c065abfe4ab7c2d2b8ad692f14489d0
+SHA256: 1bfe8e0f1933a9e921d251efa0f1385e19c58c5ac1deac809a40c93a7fbe1d69
 ```
 
 Current branch:
@@ -156,7 +156,7 @@ The 909 accent is applied inside `Kick909_process()` to body, pitch, and click e
 
 ## Gate Length / Decay
 
-Gate-length decay extension begins after about 50 ms:
+For the 808 engine, gate-length decay extension begins after about 50 ms:
 
 ```cpp
 if (activeTrig && kickGateTimer > 50)
@@ -165,10 +165,21 @@ if (activeTrig && kickGateTimer > 50)
 }
 ```
 
-Current scaling:
+Current 808 scaling:
 
 - 808: `kickGateDecayBoost * 2`
-- 909: `kickGateDecayBoost * 3`
+
+Current 909 behavior:
+
+- 909 gate length is handled inside `Kick909_process()`, not by an external decay CC boost.
+- `Kick909__ctx_type_0` has a `gateSamples` counter.
+- Once the gate has been held for more than `512` audio samples, the body envelope fall changes to:
+
+```cpp
+bodyFall = (bodyFall >> 4) + (_ctx.bodyEnv >> 13);
+```
+
+Reason: the earlier strong hold sounded cool but became a flat sustained tone. The current version keeps the longer, bassier held-gate character while adding a level-dependent bleed so the 909 still rolls off naturally.
 
 Goal:
 
@@ -197,6 +208,7 @@ Main tuning files:
   - CC 43 engine mode, CC 44 accent, CC 45 808 click
 - `Brain.h`
   - `Kick909__ctx_type_0`
+  - added `gateSamples` for 909 held-gate decay
   - added `kickAccent`, `kick808ClickAmount`, `kick808ClickEnv`, `kick808ClickNoise`
 
 ## Build Command
@@ -229,13 +241,16 @@ Preserve unless explicitly changing:
 - low-velocity 808 click should remain a separate transient, not hardness
 - normal short trigger should follow the decay knob
 - long gate should extend decay
+- 909 long gate should be bassy and audible, but must keep rolling off rather than becoming a flat tone
 
 Good next tuning moves:
 
 - If 808 high velocity still feels pitch-shifted, reduce `accentPitch = accentAboveNormal / 3` or make the pitch envelope itself decay faster.
 - If 808 low velocity needs more click, raise the CC 45 click transient amount or decay shape in `Brain.cpp`, not `accentHardness`.
 - If 909 accents are too flat after the current remap, raise only the top of `kick909AccentCurve()` from `60` to a small higher value such as `65`.
-- If gate length feels too dramatic, lower the `* 2` or `* 3` gate scaling rather than touching the decay knob mapping.
+- If 909 gate length feels too flat again, increase the level-dependent bleed term in `Kick909_process()` from `(_ctx.bodyEnv >> 13)` to `(_ctx.bodyEnv >> 12)`.
+- If 909 gate length becomes too subtle, keep the bleed term but make the held-gate base fall smaller, for example `bodyFall >> 5`.
+- If 808 gate length feels too dramatic, lower the `* 2` gate scaling rather than touching the decay knob mapping.
 
 Avoid:
 

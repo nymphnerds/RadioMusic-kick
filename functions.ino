@@ -209,16 +209,16 @@ void controlInstrumentParams(){
       int accentHardness = kickEngine == KICK_ENGINE_909 ? 0 : accentAboveNormal / 4;
       int accentClick = kickEngine == KICK_ENGINE_909 ? 0 : accentBelowNormal;
       int gateDecay = kickParams[1];
-      if (activeTrig && kickGateTimer > 50)
-      {
-        kickGateDecayBoost = constrain((int)(kickGateTimer - 50) / 3, 0, 127);
-      }
       if (kickEngine == KICK_ENGINE_909)
       {
-        gateDecay = constrain(gateDecay + (kickGateDecayBoost * 3), 0, 127);
+        gateDecay = kickParams[1];
       }
       else
       {
+        if (activeTrig && kickGateTimer > 50)
+        {
+          kickGateDecayBoost = constrain((int)(kickGateTimer - 50) / 3, 0, 127);
+        }
         gateDecay = constrain(gateDecay + (kickGateDecayBoost * 2) + (accentAboveNormal / 8) - (accentBelowNormal / 2), 0, 127);
       }
       voice1.controlChange(31, gateDecay, 1);
