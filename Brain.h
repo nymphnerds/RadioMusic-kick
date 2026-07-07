@@ -25,7 +25,7 @@ fix16_t Kick_cvToRateMultiplier(fix16_t cvRaw);
 
 fix16_t Kick_decayToFallingRate(fix16_t d);
 
-fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV, fix16_t envelope);
+fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV);
 
 typedef struct Kick__ctx_type_3 {
    uint8_t pre;

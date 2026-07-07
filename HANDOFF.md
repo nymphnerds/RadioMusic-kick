@@ -29,9 +29,13 @@ Use Radio Music panel names. "Hardness" should be called "click" in user-facing 
 
 Accent should not be a simple volume boost. The desired direction is saturation/drive-like accent that feels integrated with the kick and follows the decay/tail naturally.
 
-Current listening result: the present accent build is not right. The accent does not follow the decay tail properly and it clips/cuts out. Do not treat the current accent implementation as solved.
+Accent is still the desired next solution path, but it needs a better implementation. It should add saturation/drive character and performance accent without changing, shortening, or killing the natural decay.
 
-Next accent work should restart from the stable boom baseline, preserve that hex first, then add accent in the smallest possible step. The accent needs to saturate the body/tail naturally without breaking the long decay.
+Current listening result before the latest test: accent was not right. It did not follow the decay tail properly and it clipped/cut out. Do not treat accent as solved.
+
+Latest local test build changes accent into a dry-preserving saturation blend after the kick/filter. This is meant to keep the natural decay underneath while adding driven accent. It still needs listening tests.
+
+If the latest test still fails, return to the stable boom baseline, preserve that hex first, then add accent again in the smallest possible step. The accent needs to saturate the body/tail naturally without breaking the long decay.
 
 Avoid clever, hidden, or broad rewrites. Change one thing at a time and preserve a testable hex before experiments.
 
@@ -62,6 +66,6 @@ Current built hex:
 
 SHA-256:
 
-`414d5b08ce28fb8640242c47e5017c08b44d8eca5ea41ad4fa53078b0793e97a`
+`6ae8eb2efb94972ee1cecaad1928517d4989ef65a0b7f7896048e29818310239`
 
-This current accent build failed listening tests for the accent tail behavior. Return to the saved `boombaseline` branch first, then add accent again in the smallest possible step.
+This current accent build is a test build, not a confirmed keeper. It keeps the decay envelope untouched and applies accent as dry-preserving saturation after the kick/filter.

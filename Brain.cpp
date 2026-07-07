@@ -6,7 +6,9 @@ static const float KICK_ADC_REF = 3.3f;
 static const float KICK_TUNE_CV_SCALE = 1.0f;
 static const fix16_t KICK_GATE_DECAY_BOOST = 0x800000 /* 128.000000 */;
 static const fix16_t KICK_ACCENT_CV_FULL_SCALE = 0x20000000 /* 8192.000000 */;
-static const fix16_t KICK_ACCENT_DRIVE = 0x14000 /* 1.250000 */;
+static const fix16_t KICK_ACCENT_DRIVE = 0x30000 /* 3.000000 */;
+static const fix16_t KICK_ACCENT_CURVE = 0x18000 /* 1.500000 */;
+static const fix16_t KICK_ACCENT_MIX = 0xc000 /* 0.750000 */;
 
 void Kick__ctx_type_0_init(Kick__ctx_type_0 &_output_){
    Kick__ctx_type_0 _ctx;
@@ -40,19 +42,21 @@ fix16_t Kick_decayToFallingRate(fix16_t d){
    return fix_div(0x10000 /* 1.000000 */,fix_mul(d,0x15b3e7c /* 347.244094 */));
 }
 
-fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV, fix16_t envelope){
+fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV){
    if(accentCV <= 0x0 /* 0.000000 */){
       return x;
    }
    fix16_t accent;
    accent = fix_div(accentCV,KICK_ACCENT_CV_FULL_SCALE);
-   fix16_t amount;
-   amount = fix_mul(fix_mul(accent,envelope),KICK_ACCENT_DRIVE);
-   fix16_t x2;
-   x2 = fix_mul(x,x);
-   fix16_t x3;
-   x3 = fix_mul(x2,x);
-   return (x + fix_mul(amount,(x + (- x3))));
+   fix16_t drive;
+   drive = (0x10000 /* 1.000000 */ + fix_mul(accent,KICK_ACCENT_DRIVE));
+   fix16_t driven;
+   driven = fix_mul(x,drive);
+   fix16_t curve;
+   curve = fix_mul(accent,KICK_ACCENT_CURVE);
+   fix16_t shaped;
+   shaped = fix_div(driven,(0x10000 /* 1.000000 */ + fix_mul(curve,fix_abs(driven))));
+   return (x + fix_mul(fix_mul(accent,KICK_ACCENT_MIX),(shaped + (- x))));
 }
 
 void Kick__ctx_type_3_init(Kick__ctx_type_3 &_output_){
@@ -265,8 +269,8 @@ fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16
    sine = Kick_customBridgeT(_ctx._inst90,_ctx.tune,_ctx.tuneCV,_ctx.gate,_ctx.pitchEnvInt,_ctx.decay,_ctx.hardness);
    amp = Kick_ampEnvelope(_ctx._inst91,_ctx.decay,_ctx.gate);
    kick = fix_mul(sine,amp);
-   kick = Kick_accentDrive(kick,_ctx.accentDrive,amp);
-   return Kick_LP(_ctx._inst92,kick);
+   kick = Kick_LP(_ctx._inst92,kick);
+   return Kick_accentDrive(kick,_ctx.accentDrive);
 }
 
 void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
