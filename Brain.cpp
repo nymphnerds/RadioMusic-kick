@@ -1,6 +1,11 @@
 
 #include "Brain.h"
 
+static const float KICK_ADC_MAX = 8192.0f;
+static const float KICK_ADC_REF = 3.3f;
+static const float KICK_TUNE_CV_SCALE = 1.0f;
+static const fix16_t KICK_GATE_DECAY_BOOST = 0x800000 /* 128.000000 */;
+
 void Kick__ctx_type_0_init(Kick__ctx_type_0 &_output_){
    Kick__ctx_type_0 _ctx;
    _ctx.pre_x = 0x0 /* 0.000000 */;
@@ -22,6 +27,11 @@ uint8_t Kick_change(Kick__ctx_type_0 &_ctx, fix16_t x){
 
 fix16_t Kick_pitchToRate(fix16_t d){
    return fix_mul(0x2 /* 0.000045 */,d);
+}
+
+fix16_t Kick_cvToRateMultiplier(fix16_t cvRaw){
+   float cvOctaves = (fix_to_float(cvRaw) / KICK_ADC_MAX) * KICK_ADC_REF * KICK_TUNE_CV_SCALE;
+   return float_to_fix(powf(2.0f, cvOctaves));
 }
 
 fix16_t Kick_decayToFallingRate(fix16_t d){
@@ -79,6 +89,12 @@ fix16_t Kick_envelope(Kick__ctx_type_4 &_ctx, fix16_t dec, uint8_t g){
       _ctx.envelope = 0x0 /* 0.000000 */;
    }
    return _ctx.envelope;
+}
+
+fix16_t Kick_ampEnvelope(Kick__ctx_type_4 &_ctx, fix16_t dec, uint8_t g){
+   fix16_t activeDecay;
+   activeDecay = g ? (dec + KICK_GATE_DECAY_BOOST) : dec;
+   return Kick_envelope(_ctx,activeDecay,g);
 }
 
 void Kick__ctx_type_5_init(Kick__ctx_type_5 &_output_){
@@ -156,7 +172,7 @@ void Kick_customBridgeT_init(Kick__ctx_type_7 &_output_){
    return ;
 }
 
-fix16_t Kick_customBridgeT(Kick__ctx_type_7 &_ctx, fix16_t tune, uint8_t g, fix16_t envInt, fix16_t dec, fix16_t hardness){
+fix16_t Kick_customBridgeT(Kick__ctx_type_7 &_ctx, fix16_t tune, fix16_t tuneCV, uint8_t g, fix16_t envInt, fix16_t dec, fix16_t hardness){
    uint8_t reset;
    uint8_t _cond_97;
    _cond_97 = Kick_edge(_ctx._inst77,g);
@@ -173,9 +189,9 @@ fix16_t Kick_customBridgeT(Kick__ctx_type_7 &_ctx, fix16_t tune, uint8_t g, fix1
       _ctx.env = (fix_mul(Kick_envelope(_ctx._inst82,(dec >> 4),g),envInt) >> 1);
    }
    uint8_t _cond_99;
-   _cond_99 = (Kick_change(_ctx._inst83,tune) || Kick_change(_ctx._inst84,_ctx.env));
+   _cond_99 = (Kick_change(_ctx._inst83,(tune + tuneCV)) || Kick_change(_ctx._inst84,_ctx.env));
    if(_cond_99){
-      _ctx.rate = (Kick_pitchToRate((tune + _ctx.env)) + 0x41 /* 0.001000 */);
+      _ctx.rate = fix_mul((Kick_pitchToRate((tune + _ctx.env)) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCV));
    }
    if(reset){ _ctx.phase = fix_mul(hardness,0x81 /* 0.001969 */); }
    else
@@ -188,6 +204,7 @@ fix16_t Kick_customBridgeT(Kick__ctx_type_7 &_ctx, fix16_t tune, uint8_t g, fix1
 void Kick__ctx_type_8_init(Kick__ctx_type_8 &_output_){
    Kick__ctx_type_8 _ctx;
    _ctx.tune = 0x0 /* 0.000000 */;
+   _ctx.tuneCV = 0x0 /* 0.000000 */;
    _ctx.pitchEnvInt = 0x0 /* 0.000000 */;
    _ctx.hardness = 0x0 /* 0.000000 */;
    _ctx.gate = 0;
@@ -204,7 +221,7 @@ void Kick_process_init(Kick__ctx_type_8 &_output_){
    return ;
 }
 
-fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI){
+fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI){
    uint8_t _cond_101;
    _cond_101 = (gateI >= 0x8000 /* 0.500000 */);
    if(_cond_101){
@@ -219,19 +236,20 @@ fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16
       }
    }
    _ctx.tune = tuneI;
+   _ctx.tuneCV = tuneCVI;
    _ctx.decay = decayI;
    _ctx.pitchEnvInt = pitchEnvIntI;
    _ctx.hardness = hardnessI;
    fix16_t kick;
    fix16_t sine;
-   sine = Kick_customBridgeT(_ctx._inst90,_ctx.tune,_ctx.gate,_ctx.pitchEnvInt,_ctx.decay,_ctx.hardness);
-   kick = fix_mul(sine,Kick_envelope(_ctx._inst91,_ctx.decay,_ctx.gate));
+   sine = Kick_customBridgeT(_ctx._inst90,_ctx.tune,_ctx.tuneCV,_ctx.gate,_ctx.pitchEnvInt,_ctx.decay,_ctx.hardness);
+   kick = fix_mul(sine,Kick_ampEnvelope(_ctx._inst91,_ctx.decay,_ctx.gate));
    return Kick_LP(_ctx._inst92,kick);
 }
 
 void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
    Brain__ctx_type_0 _ctx;
-   fix_init_array(5,0x0 /* 0.000000 */,_ctx.kickParam);
+   fix_init_array(6,0x0 /* 0.000000 */,_ctx.kickParam);
    _ctx.voice1 = 0x0 /* 0.000000 */;
    Kick__ctx_type_8_init(_ctx._inst160);
    _output_ = _ctx;
@@ -244,7 +262,7 @@ void Brain_process_init(Brain__ctx_type_0 &_output_){
 }
 
 fix16_t Brain_process(Brain__ctx_type_0 &_ctx, fix16_t input){
-   _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4]);
+   _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4]);
    return (_ctx.voice1 >> 1);
 }
 
@@ -288,6 +306,9 @@ void Brain_controlChange(Brain__ctx_type_0 &_ctx, int control, int value, int ch
    else if(control == 34){
       _ctx.kickParam[4] = int_to_fix(value);
    }
+   else if(control == 35){
+      _ctx.kickParam[5] = int_to_fix(value);
+   }
 }
 
 void Brain_default_init(Brain__ctx_type_0 &_output_){
@@ -301,6 +322,7 @@ void Brain_default(Brain__ctx_type_0 &_ctx){
    _ctx.kickParam[2] = 0x200000 /* 32.000000 */;
    _ctx.kickParam[3] = 0x200000 /* 32.000000 */;
    _ctx.kickParam[4] = 0x200000 /* 32.000000 */;
+   _ctx.kickParam[5] = 0x0 /* 0.000000 */;
    _ctx.voice1 = 0x0 /* 0.000000 */;
 }
 

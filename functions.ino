@@ -6,8 +6,8 @@ void checkInterface(){
     int param2Pot = analogRead(ROOT_POT_PIN); 
     param2CV = analogRead(ROOT_CV_PIN); 
 
-    int param1Raw = constrain(param1Pot + param1CV, 0, ADC_MAX_VAL - 1);
-    int param2Raw = constrain(param2Pot + param2CV, 0, ADC_MAX_VAL - 1);
+    int param1Raw = controlPage2 ? constrain(param1Pot + param1CV, 0, ADC_MAX_VAL - 1) : param1Pot;
+    int param2Raw = controlPage2 ? constrain(param2Pot + param2CV, 0, ADC_MAX_VAL - 1) : param2Pot;
     param1 = param1Raw / 64.5;
     param2 = param2Raw / 64.5;
 }
@@ -115,20 +115,11 @@ void controlInstrumentParams(){
     voice1.controlChange(31, instrumentsParams[BASS_DRUM][1], 1);
     voice1.controlChange(33, instrumentsParams[BASS_DRUM][2], 1);
     voice1.controlChange(34, instrumentsParams[BASS_DRUM][3], 1);
+    voice1.controlChange(35, param1CV, 1);
 }
 
-void updateKickParam(int paramIndex, int value, int cvValue){
-    if (cvValue > 15)
-    {
-        instrumentsParams[BASS_DRUM][paramIndex] = value;
-        return;
-    }
-
-    int currentValue = instrumentsParams[BASS_DRUM][paramIndex];
-    if (value < currentValue + POT_TOLERANCE && value > currentValue - POT_TOLERANCE)
-    {
-        instrumentsParams[BASS_DRUM][paramIndex] = value;
-    }
+void updateKickParam(int paramIndex, int value){
+    instrumentsParams[BASS_DRUM][paramIndex] = value;
 }
 
 void setControlValues(){  
@@ -136,8 +127,8 @@ void setControlValues(){
     if (buttonState == 0)
     {
         int firstParam = controlPage2 == false ? 0 : 2;
-        updateKickParam(firstParam, param1, param1CV);
-        updateKickParam(firstParam + 1, param2, param2CV);
+        updateKickParam(firstParam, param1);
+        updateKickParam(firstParam + 1, param2);
     }
 }
 
@@ -151,12 +142,13 @@ void selectInstrument(){
 }
 
 void trigInstrument(){
-    if (digitalRead (RESET_CV) == 1 && activeTrig == false)
+    int gateState = digitalRead(RESET_CV);
+    if (gateState == 1 && activeTrig == false)
     {
       voice1.noteOn(32 ,127,1);
       activeTrig = true;
     }
-    if (digitalRead(RESET_CV) == 0)
+    if (gateState == 0 && activeTrig == true)
     {
       voice1.noteOff(32, 0, 1);
       activeTrig = false;
