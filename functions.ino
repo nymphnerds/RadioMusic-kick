@@ -7,7 +7,7 @@ void checkInterface(){
     param2CV = analogRead(ROOT_CV_PIN); 
 
     int param1Raw = controlPage2 ? constrain(param1Pot + param1CV, 0, ADC_MAX_VAL - 1) : param1Pot;
-    int param2Raw = controlPage2 ? constrain(param2Pot + param2CV, 0, ADC_MAX_VAL - 1) : param2Pot;
+    int param2Raw = param2Pot;
     param1 = param1Raw / 64.5;
     param2 = param2Raw / 64.5;
 }
@@ -116,6 +116,7 @@ void controlInstrumentParams(){
     voice1.controlChange(33, instrumentsParams[BASS_DRUM][2], 1);
     voice1.controlChange(34, instrumentsParams[BASS_DRUM][3], 1);
     voice1.controlChange(35, param1CV, 1);
+    voice1.controlChange(36, param2CV, 1);
 }
 
 void updateKickParam(int paramIndex, int value){

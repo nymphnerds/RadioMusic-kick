@@ -2,7 +2,7 @@
 
 Kick-only firmware for the MTM Radio Music hardware, based on HoRa Music's MultiDrums firmware.
 
-This branch turns the module into a dedicated synthesized bass drum voice. The sample drum paths are removed from the control flow, the trigger input fires only the kick engine, and the output is tuned for long, boomy 808-style decay without digital wrap at the audio output.
+This branch turns the module into a dedicated synthesized bass drum voice. The sample drum paths are removed from the control flow, the trigger input fires only the kick engine, and the output is tuned for long, boomy kick decay.
 
 ## Highlights
 
@@ -11,7 +11,8 @@ This branch turns the module into a dedicated synthesized bass drum voice. The s
 - Station CV routed as tune CV into the kick engine
 - Start knob controls natural decay
 - Trigger gate length extends the amp decay for longer booms
-- Output headroom and final saturation to avoid harsh digital wrap
+- Start CV accent path
+- Output protection against harsh digital wrap
 - Button switches between two compact control pages
 
 ## Controls
@@ -20,8 +21,8 @@ The names below assume the Radio Music front panel.
 
 | Page | Station knob | Station CV | Start knob | Start CV |
 | --- | --- | --- | --- | --- |
-| Page 1 | Tune | Tune CV | Decay | Reserved |
-| Page 2 | Pitch envelope | Pitch envelope CV | Click | Click CV |
+| Page 1 | Tune | Tune CV | Decay | Accent |
+| Page 2 | Pitch envelope | Pitch envelope CV | Click | Accent |
 
 Hold the button to toggle between pages. The reset LED flashes on Page 2.
 
@@ -49,10 +50,9 @@ In the current build, the Station knob is the manual tune offset and Station CV 
 
 - Page 1 is the main performance page: Tune, Tune CV, Decay.
 - Page 2 is tone shaping: pitch envelope and click.
-- Start CV is reserved in this build.
+- Start CV controls accent.
 - Longer trigger gates extend the boom naturally.
-- Very long gates are supported; the output stage includes final saturation to stop digital wrap distortion.
-- The current known-good branch is `boombaseline`.
+- Very long gates are supported; the output stage protects against digital wrap distortion.
 
 The current build artifact is `MultiDrums.hex`.
 

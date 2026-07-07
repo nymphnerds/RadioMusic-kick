@@ -25,6 +25,8 @@ fix16_t Kick_cvToRateMultiplier(fix16_t cvRaw);
 
 fix16_t Kick_decayToFallingRate(fix16_t d);
 
+fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV, fix16_t envelope);
+
 typedef struct Kick__ctx_type_3 {
    uint8_t pre;
 } Kick__ctx_type_3;
@@ -99,6 +101,7 @@ typedef struct Kick__ctx_type_8 {
    fix16_t tuneCV;
    fix16_t pitchEnvInt;
    fix16_t hardness;
+   fix16_t accentDrive;
    uint8_t gate;
    fix16_t decay;
    Kick__ctx_type_5 _inst92;
@@ -112,10 +115,10 @@ void Kick__ctx_type_8_init(Kick__ctx_type_8 &_output_);
 
 void Kick_process_init(Kick__ctx_type_8 &_output_);
 
-fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI);
+fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI, fix16_t accentDriveI);
 
 typedef struct Brain__ctx_type_0 {
-   fix16_t kickParam[6];
+   fix16_t kickParam[7];
    fix16_t voice1;
    Kick__ctx_type_8 _inst160;
 } Brain__ctx_type_0;
