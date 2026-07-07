@@ -1,36 +1,24 @@
-# MultiDrums
-Alternative firmware for MTM "chord organ" or "radio music" (eurorack module)
+# RadioMusic Kick
 
-"MultiDrums" is an alternative firmware for both MTM "chord organ" and "radio music" modules witten by "hora music".
+Kick-only firmware for the MTM Radio Music / Chord Organ eurorack hardware, based on HoRa Music's MultiDrums firmware.
 
-This firmawares hallows to play analog drums sounds closed to those used in the Hora music "analog drums" VCV rack plugin 
-and 6 Linn drum sounds (samples).
+This version removes the sample drum playback paths and keeps the modeled bass drum as the only playable instrument. The trigger input fires the kick voice, the button no longer cycles through snare, hi-hat, or sample modes, and the sample data files are not part of the sketch.
 
-The three "analog sounds" (kick snare and hi hat) are based on modeling and don't use samples, 
-this give closer to real analog drums and hallow to offer typical settable parameters of analog drums (most of these are CV controlable).
+## Controls
 
-The 6 linndrum sounds are based on 16bit 44100hz wav files : Kick, Snare, Clap, Closed hi-hat, open hi-hat, crash cymbale. 
-Users can set the sample decay, can play 2 samples simultaneously and the sample selection is CV controlable.
+The firmware keeps the original bass drum control layout:
 
-This module used DSP write with the Vult transcompiler : https://modlfo.github.io/vult/
+| Page | Chord knob/CV | Root knob/CV |
+| --- | --- | --- |
+| Page 1 | Tune | Decay |
+| Page 2 | Pitch envelope | Hardness |
 
+Hold the button to toggle between page 1 and page 2. The reset LED flashes while page 2 is active.
 
-MAIN CONTROLS:
+LED3 indicates that the kick voice is selected. LED0, LED1, and LED2 are unused in this kick-only version.
 
-![alt text](https://github.com/HoRaMusic/MultiDrums/blob/master/modulePic.png)
+## Source Notes
 
+The modeled kick engine lives in `Brain.cpp` and `Brain.h`. The hardware control and trigger behavior lives in `MultiDrums.ino` and `functions.ino`.
 
-
-The leds indicate the playing instrument 1: kick, 2: snare, 3: hi-hat, 4: samples.
-The "chord" and "Root" inputs are also used for cv control of parameter 1 and 2 (0v to 3.3v), here is a more detailed description:
-
-
-
-
-ADVANCED CONTROLS:
-
-![alt text](https://github.com/HoRaMusic/RadioMusic-MultiDrums/blob/master/controlsF.png)
-
-
-
-
+The original sample files have been removed from the sketch so Arduino/Teensy builds do not compile the Linn drum sample payload.
