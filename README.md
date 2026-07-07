@@ -1,24 +1,40 @@
 # RadioMusic Kick
 
-Kick-only firmware for the MTM Radio Music / Chord Organ eurorack hardware, based on HoRa Music's MultiDrums firmware.
+Kick-only firmware for the MTM Radio Music hardware, based on HoRa Music's MultiDrums firmware.
 
-This version removes the sample drum playback paths and keeps the modeled bass drum as the only playable instrument. The trigger input fires the kick voice, the button no longer cycles through snare, hi-hat, or sample modes, and the sample data files are not part of the sketch.
+This branch turns the module into a dedicated synthesized bass drum voice. The sample drum paths are removed from the control flow, the trigger input fires only the kick engine, and the output is tuned for long, boomy 808-style decay without digital wrap at the audio output.
+
+## Highlights
+
+- One dedicated synthesized kick voice
+- Direct knob response with no pickup/safety-jump behavior
+- Station CV routed as tune CV into the kick engine
+- Start knob controls natural decay
+- Trigger gate length extends the amp decay for longer booms
+- Output headroom and final saturation to avoid harsh digital wrap
+- Button switches between two compact control pages
 
 ## Controls
 
-The firmware keeps the original bass drum control layout:
+The names below assume the Radio Music front panel.
 
-| Page | Chord knob/CV | Root knob/CV |
-| --- | --- | --- |
-| Page 1 | Tune | Decay |
-| Page 2 | Pitch envelope | Hardness |
+| Page | Station knob | Station CV | Start knob | Start CV |
+| --- | --- | --- | --- | --- |
+| Page 1 | Tune | Tune CV | Decay | Reserved |
+| Page 2 | Pitch envelope | Pitch envelope CV | Click | Click CV |
 
-Hold the button to toggle between page 1 and page 2. The reset LED flashes while page 2 is active.
+Hold the button to toggle between pages. The reset LED flashes on Page 2.
 
-LED3 indicates that the kick voice is selected. LED0, LED1, and LED2 are unused in this kick-only version.
+The trigger input fires the kick. Longer trigger gates hold the amp envelope open for a longer 808-style boom while the Start knob remains the base decay control.
 
-## Source Notes
+## Notes
 
-The modeled kick engine lives in `Brain.cpp` and `Brain.h`. The hardware control and trigger behavior lives in `MultiDrums.ino` and `functions.ino`.
+The Teensy analog input reads positive CV only. On an OXI One pitch CV output, C2 is the first 0V point, so notes below that may not produce useful pitch CV on this hardware without external offset.
 
-The original sample files have been removed from the sketch so Arduino/Teensy builds do not compile the Linn drum sample payload.
+The current build artifact is `MultiDrums.hex`.
+
+## Source
+
+- `MultiDrums.ino`: hardware setup and audio output gain
+- `functions.ino`: panel controls, page switching, trigger handling
+- `Brain.cpp` / `Brain.h`: kick synthesis engine and output saturation

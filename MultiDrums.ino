@@ -55,7 +55,7 @@ AudioConnection          patchCord5(mixer1, dac1);
 // GUItool: end automatically generated code
 
 void setup() {
-  mixer1.gain(0, 3.0);
+  mixer1.gain(0, 2.3);
   AudioMemory(12); //50
   voice1.begin();
   pinMode(RESET_BUTTON, INPUT);

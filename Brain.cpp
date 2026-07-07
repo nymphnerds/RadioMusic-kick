@@ -338,7 +338,10 @@ void Brain::update(void)
     bp = block->data;
       for(int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
         fix16_t v = Brain_process(data, 0);
-        *bp++ = (int16_t)(v / 2);
+        v = v / 2;
+        if(v > 32767) v = 32767;
+        if(v < -32768) v = -32768;
+        *bp++ = (int16_t)v;
       }
 
     transmit(block, 0);
