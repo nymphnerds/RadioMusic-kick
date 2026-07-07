@@ -29,6 +29,10 @@ Use Radio Music panel names. "Hardness" should be called "click" in user-facing 
 
 Accent should not be a simple volume boost. The desired direction is saturation/drive-like accent that feels integrated with the kick and follows the decay/tail naturally.
 
+Current listening result: the present accent build is not right. The accent does not follow the decay tail properly and it clips/cuts out. Do not treat the current accent implementation as solved.
+
+Next accent work should restart from the stable boom baseline, preserve that hex first, then add accent in the smallest possible step. The accent needs to saturate the body/tail naturally without breaking the long decay.
+
 Avoid clever, hidden, or broad rewrites. Change one thing at a time and preserve a testable hex before experiments.
 
 ## Known Fork Context
@@ -60,4 +64,4 @@ SHA-256:
 
 `414d5b08ce28fb8640242c47e5017c08b44d8eca5ea41ad4fa53078b0793e97a`
 
-This current accent build may still need listening tests. If it is not right, return to the saved `boombaseline` branch first, then add accent again in the smallest possible step.
+This current accent build failed listening tests for the accent tail behavior. Return to the saved `boombaseline` branch first, then add accent again in the smallest possible step.
