@@ -27,9 +27,32 @@ Hold the button to toggle between pages. The reset LED flashes on Page 2.
 
 The trigger input fires the kick. Longer trigger gates hold the amp envelope open for a longer 808-style boom while the Start knob remains the base decay control.
 
-## Notes
+## Tuning And Keyboard Range
 
-The Teensy analog input reads positive CV only. On an OXI One pitch CV output, C2 is the first 0V point, so notes below that may not produce useful pitch CV on this hardware without external offset.
+Station CV is intended for pitch control from a 1V/oct source. With an OXI One pitch CV output, the useful direct range starts at C2 because that is the first 0V note from the OXI.
+
+| OXI note | OXI pitch CV | Module input result |
+| --- | ---: | --- |
+| C-1 | -3V | Below readable range |
+| C0 | -2V | Below readable range |
+| C1 | -1V | Below readable range |
+| C2 | 0V | First useful pitch CV point |
+| C3 | +1V | One octave above C2 CV |
+| C4 | +2V | Two octaves above C2 CV |
+| C5 | +3V | Three octaves above C2 CV |
+
+The Radio Music analog input reads positive CV only, so notes below OXI C2 need an external positive offset if you want them to affect pitch.
+
+In the current build, the Station knob is the manual tune offset and Station CV is added inside the kick engine as pitch CV. For a practical starting point, set the Station knob fully left or low, then bring the OXI note range up from C2 until the kick speaks clearly.
+
+## Playing Notes
+
+- Page 1 is the main performance page: Tune, Tune CV, Decay.
+- Page 2 is tone shaping: pitch envelope and click.
+- Start CV is reserved in this build.
+- Longer trigger gates extend the boom naturally.
+- Very long gates are supported; the output stage includes final saturation to stop digital wrap distortion.
+- The current known-good branch is `boombaseline`.
 
 The current build artifact is `MultiDrums.hex`.
 
