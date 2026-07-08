@@ -12,6 +12,8 @@
 #define POT_TOLERANCE 5
 
 #define BASS_DRUM 0
+#define KICK_ENGINE_808 0
+#define KICK_ENGINE_909 1
 
 #define CHORD_POT_PIN 9 // pin for Chord pot
 #define CHORD_CV_PIN 6 // pin for Chord CV 
@@ -46,6 +48,9 @@ boolean controlPage2 = false;
 boolean hasBeenLoad = false;
 int DIVIDED_EEPROM_Mode_Frame = 0;
 int EEPROM_Mode_Frame = 0;
+int kickEngine = KICK_ENGINE_808;
+int kickLatchedAccent = 75;
+boolean kickAccentCvSeen = false;
 
 Brain                    voice1;
 AudioMixer4              mixer1;         //xy=489,362

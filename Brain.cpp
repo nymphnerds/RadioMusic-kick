@@ -273,10 +273,134 @@ fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16
    return Kick_accentDrive(kick,_ctx.accentDrive);
 }
 
+void Kick909__ctx_type_0_init(Kick909__ctx_type_0 &_output_){
+   Kick909__ctx_type_0 _ctx;
+   _ctx.gate = 0;
+   _ctx.phase = 0x0 /* 0.000000 */;
+   _ctx.bodyEnv = 0x0 /* 0.000000 */;
+   _ctx.pitchEnv = 0x0 /* 0.000000 */;
+   _ctx.clickEnv = 0x0 /* 0.000000 */;
+   _ctx.bodyRate = 0x50 /* 0.001221 */;
+   _ctx.noise = 22222;
+   _ctx.gateSamples = 0;
+   Kick__ctx_type_3_init(_ctx._edge);
+   Kick__ctx_type_5_init(_ctx._lp);
+   _output_ = _ctx;
+   return ;
+}
+
+void Kick909_process_init(Kick909__ctx_type_0 &_output_){
+   Kick909__ctx_type_0_init(_output_);
+   return ;
+}
+
+fix16_t Kick909_clip(fix16_t x){
+   if(x > 0x18000 /* 1.500000 */){
+      return 0x18000 /* 1.500000 */;
+   }
+   if(x < -0x18000 /* -1.500000 */){
+      return -0x18000 /* -1.500000 */;
+   }
+   if(x > 0x10000 /* 1.000000 */){
+      return 0x10000 /* 1.000000 */ + ((x - 0x10000 /* 1.000000 */) >> 2);
+   }
+   if(x < -0x10000 /* -1.000000 */){
+      return -0x10000 /* -1.000000 */ + ((x + 0x10000 /* 1.000000 */) >> 2);
+   }
+   return x;
+}
+
+fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI, fix16_t accentI){
+   if(gateI >= 0x8000 /* 0.500000 */){
+      _ctx.gate = 1;
+   }
+   else
+   {
+      _ctx.gate = 0;
+   }
+
+   if(_ctx.gate){
+      if(_ctx.gateSamples < 32000){
+         _ctx.gateSamples = _ctx.gateSamples + 1;
+      }
+   }
+   else
+   {
+      _ctx.gateSamples = 0;
+   }
+
+   uint8_t edge;
+   edge = Kick_edge(_ctx._edge,_ctx.gate);
+   if(edge){
+      fix16_t velScale;
+      if(accentI <= 0x4b0000 /* 75.000000 */){
+         velScale = 0x599a /* 0.350006 */ + fix_mul(accentI,0x238 /* 0.008667 */);
+      }
+      else
+      {
+         velScale = 0x10000 /* 1.000000 */ + fix_mul((accentI - 0x4b0000 /* 75.000000 */),0x1b9 /* 0.006729 */);
+      }
+      fix16_t accentAboveMid;
+      accentAboveMid = accentI - 0x4b0000 /* 75.000000 */;
+      if(accentAboveMid < 0x0 /* 0.000000 */){
+         accentAboveMid = 0x0 /* 0.000000 */;
+      }
+      fix16_t accentTransient;
+      accentTransient = (accentAboveMid >> 7);
+      _ctx.phase = fix_mul(hardnessI,0x50 /* 0.001221 */);
+      _ctx.bodyEnv = fix_mul(0x13000 /* 1.187500 */,velScale) + (accentTransient >> 5);
+      _ctx.pitchEnv = fix_mul(0x10000 /* 1.000000 */,velScale) + (accentTransient >> 2);
+      _ctx.clickEnv = fix_mul(0x10000 /* 1.000000 */,velScale) + (accentTransient >> 1);
+   }
+
+   fix16_t pitchAmount;
+   pitchAmount = fix_mul((pitchEnvIntI + 0x300000 /* 48.000000 */),0x2 /* 0.000031 */);
+   _ctx.bodyRate = fix_mul((Kick_pitchToRate(tuneI) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCVI));
+   _ctx.phase = ((_ctx.phase + _ctx.bodyRate + fix_mul(pitchAmount,_ctx.pitchEnv)) % 0x10000 /* 1.000000 */);
+
+   fix16_t body;
+   body = fix_mul(fix_sin(fix_mul(0x6487e /* 6.283185 */,_ctx.phase)),_ctx.bodyEnv);
+
+   _ctx.noise = (((_ctx.noise * 17389) + 7919) % 32768);
+   fix16_t noise;
+   noise = (fix_mul(int_to_fix(_ctx.noise),0x2 /* 0.000031 */) + -0x8000 /* -0.500000 */);
+   fix16_t click;
+   click = fix_mul(fix_mul(noise,_ctx.clickEnv),((hardnessI >> 8) + 0x1800 /* 0.093750 */));
+
+   fix16_t mixed;
+   mixed = body + click;
+   mixed = fix_mul(mixed,((hardnessI >> 6) + 0x10000 /* 1.000000 */));
+
+   fix16_t bodyFall;
+   bodyFall = fix_div(0x10000 /* 1.000000 */,((decayI << 7) + 0x240000 /* 36.000000 */));
+   if(_ctx.gate && _ctx.gateSamples > 512){
+      bodyFall = (bodyFall >> 4) + (_ctx.bodyEnv >> 13);
+   }
+   _ctx.bodyEnv = _ctx.bodyEnv - bodyFall;
+   if(_ctx.bodyEnv < 0x0 /* 0.000000 */){
+      _ctx.bodyEnv = 0x0 /* 0.000000 */;
+   }
+
+   _ctx.pitchEnv = _ctx.pitchEnv - 0x60 /* 0.001465 */;
+   if(_ctx.pitchEnv < 0x0 /* 0.000000 */){
+      _ctx.pitchEnv = 0x0 /* 0.000000 */;
+   }
+
+   _ctx.clickEnv = _ctx.clickEnv - 0x2800 /* 0.156250 */;
+   if(_ctx.clickEnv < 0x0 /* 0.000000 */){
+      _ctx.clickEnv = 0x0 /* 0.000000 */;
+   }
+
+   return Kick_LP(_ctx._lp,Kick909_clip(mixed));
+}
+
 void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
    Brain__ctx_type_0 _ctx;
    fix_init_array(7,0x0 /* 0.000000 */,_ctx.kickParam);
    _ctx.voice1 = 0x0 /* 0.000000 */;
+   _ctx.kick909Mode = 0;
+   _ctx.kick909Accent = 0x0 /* 0.000000 */;
+   Kick909__ctx_type_0_init(_ctx._inst161);
    Kick__ctx_type_8_init(_ctx._inst160);
    _output_ = _ctx;
    return ;
@@ -288,7 +412,13 @@ void Brain_process_init(Brain__ctx_type_0 &_output_){
 }
 
 fix16_t Brain_process(Brain__ctx_type_0 &_ctx, fix16_t input){
-   _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
+   if(_ctx.kick909Mode){
+      _ctx.voice1 = Kick909_process(_ctx._inst161,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kick909Accent);
+   }
+   else
+   {
+      _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
+   }
    return (_ctx.voice1 >> 1);
 }
 
@@ -338,6 +468,12 @@ void Brain_controlChange(Brain__ctx_type_0 &_ctx, int control, int value, int ch
    else if(control == 36){
       _ctx.kickParam[6] = int_to_fix(value);
    }
+   else if(control == 43){
+      _ctx.kick909Mode = (value > 0);
+   }
+   else if(control == 44){
+      _ctx.kick909Accent = int_to_fix(value);
+   }
 }
 
 void Brain_default_init(Brain__ctx_type_0 &_output_){
@@ -354,6 +490,8 @@ void Brain_default(Brain__ctx_type_0 &_ctx){
    _ctx.kickParam[5] = 0x0 /* 0.000000 */;
    _ctx.kickParam[6] = 0x0 /* 0.000000 */;
    _ctx.voice1 = 0x0 /* 0.000000 */;
+   _ctx.kick909Mode = 0;
+   _ctx.kick909Accent = 0x0 /* 0.000000 */;
 }
 
 

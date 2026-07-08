@@ -1,4 +1,14 @@
 
+int kick909AccentCurve(int accent)
+{
+    accent = constrain(accent, 0, 127);
+    if (accent <= 75)
+    {
+        return (accent * 30) / 75;
+    }
+    return 30 + (((accent - 75) * 30) / 52);
+}
+
 void checkInterface(){
     // Read pots + CVs
     int param1Pot = analogRead(CHORD_POT_PIN); 
@@ -24,6 +34,10 @@ void checkButton(){
         else if (pushbutton1.fallingEdge() ) 
         {
             startCounter = false;
+            if (shiftTimer < 3000 && modeChanged == false)
+            {
+                kickEngine = kickEngine == KICK_ENGINE_808 ? KICK_ENGINE_909 : KICK_ENGINE_808;
+            }
             shiftTimer  = 0;
             modeChanged = false;
         }
@@ -117,6 +131,8 @@ void controlInstrumentParams(){
     voice1.controlChange(34, instrumentsParams[BASS_DRUM][3], 1);
     voice1.controlChange(35, param1CV, 1);
     voice1.controlChange(36, param2CV, 1);
+    voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
+    voice1.controlChange(44, kick909AccentCurve(kickLatchedAccent), 1);
 }
 
 void updateKickParam(int paramIndex, int value){
@@ -135,8 +151,8 @@ void setControlValues(){
 
 void selectInstrument(){
     instrument = BASS_DRUM;
-    digitalWrite(LED3, HIGH);
-    digitalWrite(LED2, LOW);
+    digitalWrite(LED3, kickEngine == KICK_ENGINE_808 ? HIGH : LOW);
+    digitalWrite(LED2, kickEngine == KICK_ENGINE_909 ? HIGH : LOW);
     digitalWrite(LED1, LOW);
     digitalWrite(LED0, LOW);
     voice1.controlChange(28, 15, 1);
@@ -146,6 +162,12 @@ void trigInstrument(){
     int gateState = digitalRead(RESET_CV);
     if (gateState == 1 && activeTrig == false)
     {
+      if (param2CV > 96)
+      {
+          kickAccentCvSeen = true;
+      }
+      kickLatchedAccent = kickAccentCvSeen ? constrain(param2CV / 64.5, 0, 127) : 75;
+      voice1.controlChange(44, kick909AccentCurve(kickLatchedAccent), 1);
       voice1.noteOn(32 ,127,1);
       activeTrig = true;
     }
