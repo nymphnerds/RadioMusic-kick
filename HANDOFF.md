@@ -1,71 +1,177 @@
 # RadioMusic Kick Handoff
 
-This project is for the MTM Radio Music hardware and Radio Music panel language. Do not frame the work as Chord Organ.
+This project is for MTM Radio Music / Radio Station hardware. Use Radio Music panel language. Do not frame the work as Chord Organ.
 
 ## Goal
 
-Build a pure kick module: no sample drums, no multi-drum behavior, no generic drum voice. The first engine must be an excellent dedicated kick voice with deep, musical, boomy decay.
+Build a pure kick module:
 
-The final direction is exactly four separate kick synthesis engines, switchable with the button. This is not optional or a maybe. The workflow is:
+- no sample drum paths
+- no generic multi-drum behavior
+- no snare/hat/sample engine reintroduction
+- clean direct code suitable for a delicate musical instrument
 
-1. Keep one excellent pure kick engine stable.
-2. Make Start CV accent work musically.
-3. Add separate switchable kick engines one at a time.
-4. End with four independent kick synth paths.
+The final direction is exactly four separate kick synthesis engines, switchable with the button. This is not optional or a maybe.
 
-## Current Control Model
+Current path:
 
-- Station knob: tune offset.
-- Station CV: pitch CV into the kick engine.
-- Start knob: decay.
-- Trigger gate length: extends decay/boom naturally.
-- Page 2 Station: pitch envelope.
-- Page 2 Start: click.
-- Start CV: accent.
+1. Keep the main 808-style kick stable.
+2. Add independent kick engines one at a time.
+3. Keep each engine's character intact.
+4. Finish with four independent kick synth paths.
 
-Use Radio Music panel names. "Hardness" should be called "click" in user-facing docs and discussion.
+## Current Published State
 
-## Accent Direction
+Fork:
 
-Accent should not be a simple volume boost. The desired direction is saturation/drive-like accent that feels integrated with the kick and follows the decay/tail naturally.
-
-Accent is still the desired next solution path, but it needs a better implementation. It should add saturation/drive character and performance accent without changing, shortening, or killing the natural decay.
-
-Current listening result before the latest test: accent was not right. It did not follow the decay tail properly and it clipped/cut out. Do not treat accent as solved.
-
-Latest local test build changes accent into a dry-preserving saturation blend after the kick/filter. This is meant to keep the natural decay underneath while adding driven accent. It still needs listening tests.
-
-If the latest test still fails, return to the stable boom baseline, preserve that hex first, then add accent again in the smallest possible step. The accent needs to saturate the body/tail naturally without breaking the long decay.
-
-Avoid clever, hidden, or broad rewrites. Change one thing at a time and preserve a testable hex before experiments.
-
-## Known Fork Context
-
-The failed previous attempt fork is:
-
+```text
 https://github.com/nymphnerds/RadioMusic-kick
+```
 
-That fork had an attempted kick-only direction and another kick synthesis engine idea, but the work became unreliable due to rushed fixes, poor communication, and losing track of known-good versions. Future work should mine useful ideas from it only after the current single kick engine is stable.
+Current pushed branch:
 
-## Do Not Repeat
+```text
+main
+```
 
-- Do not reintroduce sample drum paths.
-- Do not touch unrelated Chord Organ work.
-- Do not add poly/tail-overlap behavior unless explicitly restarted as a separate experiment.
-- Do not make large refactors during sound-design testing.
-- Do not overwrite a good hex without saving and naming it first.
-- Do not put session-history language in the README.
+Current commit:
 
-## Current Local State
-
-Current branch: `accent-saturation`.
+```text
+db97494 Add switchable 909 kick engine
+```
 
 Current built hex:
 
-`MultiDrums.hex`
+```text
+MultiDrums.hex
+SHA256: cb8c151c676adcecd599a6933f779dfce6b848e32fe1485920e2548c6ee3f9b9
+```
 
-SHA-256:
+Local branch at time of writing:
 
-`6ae8eb2efb94972ee1cecaad1928517d4989ef65a0b7f7896048e29818310239`
+```text
+accent-saturation
+```
 
-This current accent build is a test build, not a confirmed keeper. It keeps the decay envelope untouched and applies accent as dry-preserving saturation after the kick/filter.
+It is ahead of its old tracking branch because the latest commit was pushed to `kick-fork/main`.
+
+## Current Engine Model
+
+There are two switchable engines.
+
+### 808 Engine
+
+The 808 engine is the current main/reference kick:
+
+- boomy low-end voice
+- most developed decay behavior
+- Station CV uses the current 1V/oct-style pitch scaling
+- Start CV accent uses the current saturation/drive test path
+- trigger gate length extends the amp envelope naturally
+
+The 808 path is the stable reference for pitch behavior and general playability.
+
+### 909 Engine
+
+The 909 engine is imported from the earlier failed attempt fork:
+
+```text
+https://github.com/nymphnerds/RadioMusic-kick
+```
+
+Important: keep the 909 as its own synthesis path. Do not turn it into the 808 with different constants.
+
+Current 909 code should keep the failed-fork character:
+
+- sine body oscillator
+- pitch drop
+- noise click
+- body envelope with `gateSamples/bodyFall`
+- soft clip
+- low-pass shaping
+- velocity/accent response from the failed fork
+
+Recent lesson: replacing the 909 body with the 808 `Kick_ampEnvelope()` made it sound like the 808 and was rejected. Do not do that again.
+
+## Controls
+
+Radio Music panel names:
+
+- Station knob: tune offset
+- Station CV: tune CV
+- Start knob: decay
+- Start CV: accent
+- Page 2 Station: pitch envelope
+- Page 2 Start: click
+
+Button behavior:
+
+- short tap: toggle 808 / 909
+- long hold: toggle page 1 / page 2
+- LED3: 808 selected
+- LED2: 909 selected
+- reset LED flashing: page 2 active
+
+User-facing docs should call "hardness" **click**.
+
+## OXI / CV Notes
+
+OXI One pitch CV useful direct range starts at C2 because that is the first 0V note from the OXI.
+
+```text
+C-1 = -3V, below readable range
+C0  = -2V, below readable range
+C1  = -1V, below readable range
+C2  =  0V, first useful pitch CV point
+C3  = +1V
+C4  = +2V
+C5  = +3V
+```
+
+Radio Music analog inputs read positive CV only. Negative pitch CV needs external offset.
+
+OXI velocity:
+
+- range: 0-127
+- default velocity: 75
+- velocity 0 should be unaccented
+- higher velocity should add accent without killing decay
+
+## Accent Direction
+
+Accent is not fully solved.
+
+Desired direction:
+
+- performance accent, not just volume
+- saturation/drive-like character
+- should feel integrated into the kick body
+- must not clip, cut off, or shorten the decay tail
+
+Current state:
+
+- 808 uses a dry-preserving saturation/drive test path after the kick/filter.
+- 909 uses the failed-fork velocity/accent behavior.
+
+Do not assume accent is final.
+
+## Development Rules
+
+- Preserve a known-good hex before experiments.
+- Change one musical behavior at a time.
+- Do not overwrite a liked sound with a broad rewrite.
+- Do not reintroduce sample drum code.
+- Do not add poly/tail-overlap unless explicitly restarted as a separate experiment.
+- Do not touch unrelated Chord Organ work.
+- Do not put session-history language in the README.
+
+## Next Sensible Work
+
+Possible next steps:
+
+- Fine tune 909 pitch offset so engine switching lands closer musically.
+- Keep 909 character while improving Station CV tracking.
+- Revisit 808 accent carefully.
+- Add engine 3 only after 808/909 switching is stable and documented.
+
+For 909 pitch matching: adjust its own oscillator constants or base offset. Do not swap in the 808 oscillator/envelope wholesale.
