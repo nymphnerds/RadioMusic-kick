@@ -37,14 +37,14 @@ main
 Current commit:
 
 ```text
-db97494 Add switchable 909 kick engine
+v1.0.3 release commit
 ```
 
 Current built hex:
 
 ```text
 MultiDrums.hex
-SHA256: cb8c151c676adcecd599a6933f779dfce6b848e32fe1485920e2548c6ee3f9b9
+SHA256: 8f01fdfa61f09430d233af0d91ab4c7acba9f165d933e3619a058ac4f671fca0
 ```
 
 Local branch at time of writing:
@@ -90,6 +90,7 @@ Current 909 code should keep the failed-fork character:
 - soft clip
 - low-pass shaping
 - velocity/accent response from the failed fork
+- cached pitch-CV rate calculation, avoiding expensive `powf()` work inside the per-sample audio loop
 
 Recent lesson: replacing the 909 body with the 808 `Kick_ampEnvelope()` made it sound like the 808 and was rejected. Do not do that again.
 

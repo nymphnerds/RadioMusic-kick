@@ -281,6 +281,8 @@ void Kick909__ctx_type_0_init(Kick909__ctx_type_0 &_output_){
    _ctx.pitchEnv = 0x0 /* 0.000000 */;
    _ctx.clickEnv = 0x0 /* 0.000000 */;
    _ctx.bodyRate = 0x50 /* 0.001221 */;
+   _ctx.tune = -0x10000 /* -1.000000 */;
+   _ctx.tuneCV = -0x10000 /* -1.000000 */;
    _ctx.noise = 22222;
    _ctx.gateSamples = 0;
    Kick__ctx_type_3_init(_ctx._edge);
@@ -355,7 +357,11 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
 
    fix16_t pitchAmount;
    pitchAmount = fix_mul((pitchEnvIntI + 0x300000 /* 48.000000 */),0x2 /* 0.000031 */);
-   _ctx.bodyRate = fix_mul((Kick_pitchToRate(tuneI) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCVI));
+   if(_ctx.tune != tuneI || _ctx.tuneCV != tuneCVI){
+      _ctx.tune = tuneI;
+      _ctx.tuneCV = tuneCVI;
+      _ctx.bodyRate = fix_mul((Kick_pitchToRate(tuneI) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCVI));
+   }
    _ctx.phase = ((_ctx.phase + _ctx.bodyRate + fix_mul(pitchAmount,_ctx.pitchEnv)) % 0x10000 /* 1.000000 */);
 
    fix16_t body;

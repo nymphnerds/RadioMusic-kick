@@ -25,7 +25,8 @@ Current local build:
 
 ```text
 Target: teensy:avr:teensy31
-SHA256: cb8c151c676adcecd599a6933f779dfce6b848e32fe1485920e2548c6ee3f9b9
+Version: v1.0.3
+SHA256: 8f01fdfa61f09430d233af0d91ab4c7acba9f165d933e3619a058ac4f671fca0
 ```
 
 ## Quick Start
@@ -61,7 +62,7 @@ Notes:
 - Start CV is always accent.
 - Page 2 Start is called **click** in this firmware.
 - The 808 engine has the most developed decay and 1V/oct-style pitch behavior.
-- The 909 engine is experimental and keeps its own punchier synthesis path.
+- The 909 engine keeps its own punchier synthesis path and uses cached pitch-CV scaling for stable switching/performance.
 
 ## Pitch CV
 
