@@ -179,6 +179,7 @@ void loop() {
           kickEngineParams[KICK_ENGINE_ORIGINAL][i] = instrumentsParams[BASS_DRUM][i];
           kickEngineParams[KICK_ENGINE_909][i] = instrumentsParams[BASS_DRUM][i];
        }
+       initializeKickSettingsPersistence();
        sampleNumber2 = instrumentsParams[instrument][3]/20;
        if (sampleNumber2 == 0)
           {
@@ -246,7 +247,7 @@ void loop() {
                 envelope1.decay(15000);
               }
           } 
-        hasBeenLoad = true;
+         hasBeenLoad = true;
   }
   
   checkButton(); // get button state and determine short or long press and increment instrument 
@@ -255,6 +256,7 @@ void loop() {
   setControlValues();
   controlInstrumentParams(); // use the cv and pot value to control the voice1 paramete for the current instrument 
   trigInstrument(); // trig the sound demending on the choosen instrument and trig input 
+  serviceKickSettingsPersistence();
  
   /*
   Serial.println("AUDIO_CPU: ");
