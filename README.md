@@ -2,16 +2,16 @@
 
 Kick-only firmware for Music Thing Modular Radio Music / Radio Station hardware, based on HoRa Music's MultiDrums firmware.
 
-This branch turns the module into a dedicated synthesized bass drum voice. It is not a sample drum firmware and it is not a general multi-drum mode.
+RadioMusic Kick turns the module into a dedicated synthesized bass drum voice. It is not sample playback firmware and it is not a general multi-drum mode.
 
 ## Engines
 
 RadioMusic Kick currently has two switchable kick engines:
 
-- **808**: the main boomy kick voice, tuned for long low-end decay and musical pitch control.
-- **909**: a separate punchier synthesized kick engine imported from the earlier `RadioMusic-kick` fork.
+- **909**: the default engine. Punchy, direct, and responsive to velocity/accent.
+- **808**: a boomy resonator-style kick with long decay, musical pitch CV, fast strike bend, and velocity-responsive body.
 
-The long-term direction is four separate kick synthesis engines, selected from the button, with each engine kept clean and independent.
+The long-term direction is four separate kick synthesis engines selected with the button. Each engine should remain its own clean synthesis path.
 
 ## Flashing
 
@@ -21,12 +21,12 @@ Flash:
 MultiDrums.hex
 ```
 
-Current local build:
+Current build:
 
 ```text
 Target: teensy:avr:teensy31
-Version: v1.0.4
-SHA256: 64d48d6004de5d6b01f0fec354a243b29d67b56cae90c09624c71eff74d254ac
+Version: v1.0.5
+SHA256: a89133241c673c5a9caf51a9ff0b580b869a8ce7e2ad7f19d2f25f62daf546d7
 ```
 
 ## Quick Start
@@ -56,14 +56,16 @@ The names below use the Radio Music front panel.
 | Page | Station knob | Station CV | Start knob | Start CV |
 | --- | --- | --- | --- | --- |
 | Page 1 | Tune | Tune CV | Decay | Accent |
-| Page 2 | Pitch envelope | Pitch envelope CV | Click | Accent |
+| Page 2 | Engine macro 1 | Engine macro 1 CV | Engine macro 2 | Accent |
 
-Notes:
+Current page 2 behavior:
 
-- Start CV is always accent.
-- Page 2 Start is called **click** in this firmware.
-- The 909 engine is the default engine and has the strongest current velocity/accent response.
-- The 808 engine has long decay behavior, 1V/oct-style pitch control, and a linear internal strike accent.
+- **808 page 2 Station**: strike bend amount. This is a fast one-shot bend at the start of the kick, not a slow pitch sweep.
+- **808 page 2 Start**: attack/click character.
+- **909 page 2**: reserved for engine-specific experiments.
+- **Start CV** is always accent.
+
+Page 2 settings are stored separately per engine and should not overwrite page 1 tune/decay.
 
 ## Pitch CV
 
@@ -87,8 +89,7 @@ Practical OXI setup:
 
 - Set the OXI pitch CV track so the useful playing range starts around C2.
 - Use Station knob as the manual offset for the kick's base pitch.
-- The 808 engine is the reference for the current 1V/oct-style scaling.
-- The 909 engine is being tuned to land in a similar pitch range while keeping its own character.
+- Tune is intended to stay stable while accent and page 2 add performance character.
 
 ## Accent
 
@@ -99,28 +100,25 @@ For OXI One velocity CV:
 - OXI velocity is 0-127.
 - OXI default velocity is usually 75.
 - Velocity 0 should be treated as unaccented.
-- Higher velocity should add accent without changing the basic decay setting.
+- Higher velocity should add body, attack, and saturation without changing base tune or shortening decay.
 
 Current behavior:
 
-- 909 accent uses a velocity-style response across body, pitch, and click energy.
-- 808 accent is a simpler linear internal strike control. It scales the amp/pitch/hardness strike at the trigger edge.
-- 808 accent does not use the rejected post-drive/click/trim experiments.
-- Accent should add performance character without killing the kick decay.
-
-Accent is still a tuning area, but the current 808 path is intentionally simple and stable.
+- **909 accent** uses a velocity-style response across body, pitch, and click energy.
+- **808 accent** adds body, a short attack pulse, and high-velocity soft saturation.
+- 808 accent does not change base tune or base decay.
 
 ## Decay And Gates
 
 The 808 engine uses gate length to extend the amp envelope for longer booms while the Start knob remains the base decay control.
 
-The 909 engine currently keeps the earlier fork's 909-style body envelope and gate/body behavior. It is intentionally a separate engine, not just another skin over the 808 path.
+The 909 engine keeps its own separate body envelope and gate/body behavior. It is intentionally a different engine, not a reskinned 808.
 
 ## Source Map
 
 - `MultiDrums.ino`: hardware setup, audio routing, global engine state.
-- `functions.ino`: panel controls, button behavior, CV reads, trigger handling.
-- `Brain.cpp` / `Brain.h`: kick synthesis engines and output protection.
+- `functions.ino`: panel controls, button behavior, CV reads, trigger handling, settings persistence.
+- `Brain.cpp` / `Brain.h`: kick synthesis engines.
 - `HANDOFF.md`: development notes and future direction.
 
 ## Credits

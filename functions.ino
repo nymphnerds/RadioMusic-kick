@@ -11,12 +11,51 @@ int kick909AccentCurve(int accent)
 
 void recallKickEngineParams()
 {
-    for (int j = 0; j < 4; j++)
+    for (int j = 0; j < 2; j++)
     {
         instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
     }
-    kickPage2Params[kickEngine][0] = kickEngineParams[kickEngine][2];
-    kickPage2Params[kickEngine][1] = kickEngineParams[kickEngine][3];
+}
+
+void markKickSettingsDirty()
+{
+    kickSettingsDirty = true;
+    kickSettingsSaveTimer = 0;
+}
+
+void saveKickSettings()
+{
+    for( int j = 0; j <4; j++)
+    {
+        EEPROM.write(j, instrumentsParams[BASS_DRUM][j]);
+    }
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            EEPROM.write(30 + (engine * 4) + j, kickEngineParams[engine][j]);
+        }
+        for (int j = 0; j < 2; j++)
+        {
+            EEPROM.write(20 + (engine * 2) + j, kickPage2Params[engine][j]);
+        }
+    }
+    EEPROM.write(17, instrument);
+    kickSettingsDirty = false;
+    kickSettingsSaveTimer = 0;
+}
+
+void saveKickSettingsIfNeeded()
+{
+    if (kickSettingsDirty == false)
+    {
+        return;
+    }
+    kickSettingsSaveTimer++;
+    if (kickSettingsSaveTimer >= 6000)
+    {
+        saveKickSettings();
+    }
 }
 
 void checkInterface(){
@@ -51,6 +90,7 @@ void checkButton(){
                 kickControlsHoldUntilMove = true;
                 kickParam1HoldUntilMove = true;
                 kickParam2HoldUntilMove = true;
+                kickControlsJustSwitched = true;
                 lastKickParam1 = param1;
                 lastKickParam2 = param2;
             }
@@ -71,6 +111,7 @@ void checkButton(){
         kickControlsHoldUntilMove = true;
         kickParam1HoldUntilMove = true;
         kickParam2HoldUntilMove = true;
+        kickControlsJustSwitched = true;
         lastKickParam1 = param1;
         lastKickParam2 = param2;
         modeChanged = true;
@@ -117,22 +158,7 @@ void checkButton(){
       {
           if (hasBeenSaved == false)
           {
-            for( int j = 0; j <4; j++)
-            {
-              EEPROM.write(j, instrumentsParams[BASS_DRUM][j]);
-            }
-            for (int engine = 0; engine < 2; engine++)
-            {
-              for (int j = 0; j < 4; j++)
-              {
-                EEPROM.write(30 + (engine * 4) + j, kickEngineParams[engine][j]);
-              }
-              for (int j = 0; j < 2; j++)
-              {
-                EEPROM.write(20 + (engine * 2) + j, kickPage2Params[engine][j]);
-              }
-            }
-            EEPROM.write(17, instrument);
+            saveKickSettings();
             hasBeenSaved = true;
           }
           if (EEPROM_Mode_Frame%(FRAME_DIVIDER / 4) == 0)
@@ -176,16 +202,24 @@ void controlInstrumentParams(){
 }
 
 void updateKickParam(int paramIndex, int value){
-    kickEngineParams[kickEngine][paramIndex] = value;
     if (paramIndex >= 2)
     {
-        kickPage2Params[kickEngine][paramIndex - 2] = value;
-        instrumentsParams[BASS_DRUM][paramIndex] = value;
+        int page2Index = paramIndex - 2;
+        if (kickPage2Params[kickEngine][page2Index] == value)
+        {
+            return;
+        }
+        kickPage2Params[kickEngine][page2Index] = value;
+        markKickSettingsDirty();
+        return;
     }
-    else
+    if (kickEngineParams[kickEngine][paramIndex] == value)
     {
-        instrumentsParams[BASS_DRUM][paramIndex] = value;
+        return;
     }
+    kickEngineParams[kickEngine][paramIndex] = value;
+    instrumentsParams[BASS_DRUM][paramIndex] = value;
+    markKickSettingsDirty();
 }
 
 void setControlValues(){  
@@ -193,6 +227,13 @@ void setControlValues(){
     if (buttonState == 0)
     {
         int firstParam = controlPage2 == false ? 0 : 2;
+        if (kickControlsJustSwitched == true)
+        {
+            lastKickParam1 = param1;
+            lastKickParam2 = param2;
+            kickControlsJustSwitched = false;
+            return;
+        }
         if (kickControlsHoldUntilMove == true)
         {
             boolean param1Moved = abs(param1 - lastKickParam1) > 1;

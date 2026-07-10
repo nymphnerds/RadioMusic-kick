@@ -56,6 +56,9 @@ boolean kickAccentCvSeen = false;
 boolean kickControlsHoldUntilMove = false;
 boolean kickParam1HoldUntilMove = false;
 boolean kickParam2HoldUntilMove = false;
+boolean kickControlsJustSwitched = false;
+boolean kickSettingsDirty = false;
+int kickSettingsSaveTimer = 0;
 int lastKickParam1 = -1;
 int lastKickParam2 = -1;
 
@@ -121,7 +124,6 @@ void loop() {
             if (value < 128)
             {
               kickPage2Params[engine][j] = value;
-              kickEngineParams[engine][j + 2] = value;
             }
             else
             {
@@ -129,7 +131,7 @@ void loop() {
             }
           }
        }
-       for (int j = 0; j < 4; j++)
+       for (int j = 0; j < 2; j++)
        {
           instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
        }
@@ -141,6 +143,7 @@ void loop() {
   checkInterface(); // get pot and cv values, mix these depending on the selected instrument and constrain these to 0-127 values
   selectInstrument(); // keep the modeled kick selected and display leds
   setControlValues();
+  saveKickSettingsIfNeeded();
   controlInstrumentParams(); // use the cv and pot value to control the voice1 paramete for the current instrument 
   trigInstrument(); // trig the modeled kick from the trigger input
  
