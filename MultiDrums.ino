@@ -34,6 +34,8 @@ boolean startCounter = false;
 int param1 = 64;
 int param2 = 64;
 int instrumentsParams[1][4]; // [kick][paramNumber]
+int kickEngineParams[2][4]; // [engine][tune, decay, pitch envelope, click]
+int kickPage2Params[2][2]; // [engine][pitch envelope, click]
 int frame;
 int dividedFrame;
 int param1CV;
@@ -48,9 +50,14 @@ boolean controlPage2 = false;
 boolean hasBeenLoad = false;
 int DIVIDED_EEPROM_Mode_Frame = 0;
 int EEPROM_Mode_Frame = 0;
-int kickEngine = KICK_ENGINE_808;
+int kickEngine = KICK_ENGINE_909;
 int kickLatchedAccent = 75;
 boolean kickAccentCvSeen = false;
+boolean kickControlsHoldUntilMove = false;
+boolean kickParam1HoldUntilMove = false;
+boolean kickParam2HoldUntilMove = false;
+int lastKickParam1 = -1;
+int lastKickParam2 = -1;
 
 Brain                    voice1;
 AudioMixer4              mixer1;         //xy=489,362
@@ -63,6 +70,7 @@ void setup() {
   mixer1.gain(0, 2.3);
   AudioMemory(12); //50
   voice1.begin();
+  voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
   pinMode(RESET_BUTTON, INPUT);
   pinMode(RESET_CV, INPUT); 
   pinMode(RESET_LED, OUTPUT);
@@ -89,6 +97,41 @@ void loop() {
         {
           instrumentsParams[BASS_DRUM][j] = 0;
         }
+       }
+       for (int engine = 0; engine < 2; engine++)
+       {
+          for (int j = 0; j < 4; j++)
+          {
+            kickEngineParams[engine][j] = instrumentsParams[BASS_DRUM][j];
+          }
+       }
+       for (int engine = 0; engine < 2; engine++)
+       {
+          for (int j = 0; j < 4; j++)
+          {
+            int value = EEPROM.read(30 + (engine * 4) + j);
+            if (value < 128)
+            {
+              kickEngineParams[engine][j] = value;
+            }
+          }
+          for (int j = 0; j < 2; j++)
+          {
+            int value = EEPROM.read(20 + (engine * 2) + j);
+            if (value < 128)
+            {
+              kickPage2Params[engine][j] = value;
+              kickEngineParams[engine][j + 2] = value;
+            }
+            else
+            {
+              kickPage2Params[engine][j] = instrumentsParams[BASS_DRUM][j + 2];
+            }
+          }
+       }
+       for (int j = 0; j < 4; j++)
+       {
+          instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
        }
        instrument = BASS_DRUM;
        hasBeenLoad = true;

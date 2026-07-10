@@ -37,14 +37,14 @@ main
 Current commit:
 
 ```text
-v1.0.3 release commit
+v1.0.4 release commit
 ```
 
 Current built hex:
 
 ```text
 MultiDrums.hex
-SHA256: 8f01fdfa61f09430d233af0d91ab4c7acba9f165d933e3619a058ac4f671fca0
+SHA256: 64d48d6004de5d6b01f0fec354a243b29d67b56cae90c09624c71eff74d254ac
 ```
 
 Local branch at time of writing:
@@ -66,10 +66,18 @@ The 808 engine is the current main/reference kick:
 - boomy low-end voice
 - most developed decay behavior
 - Station CV uses the current 1V/oct-style pitch scaling
-- Start CV accent uses the current saturation/drive test path
+- Start CV accent uses a linear internal strike path
 - trigger gate length extends the amp envelope naturally
 
 The 808 path is the stable reference for pitch behavior and general playability.
+
+Current 808 accent lesson:
+
+- Do not use post-output trim as accent.
+- Do not add the old post-drive/saturation path back as the default.
+- Do not paste on extra click/noise as the first accent layer.
+- The version that sounded better scales the internal amp/pitch/hardness strike at the trigger edge.
+- Keep the 808 accent linear for now.
 
 ### 909 Engine
 
@@ -107,10 +115,10 @@ Radio Music panel names:
 
 Button behavior:
 
-- short tap: toggle 808 / 909
+- short tap: toggle 909 / 808
 - long hold: toggle page 1 / page 2
-- LED3: 808 selected
-- LED2: 909 selected
+- LED3: 909 selected
+- LED2: 808 selected
 - reset LED flashing: page 2 active
 
 User-facing docs should call "hardness" **click**.
@@ -151,8 +159,8 @@ Desired direction:
 
 Current state:
 
-- 808 uses a dry-preserving saturation/drive test path after the kick/filter.
-- 909 uses the failed-fork velocity/accent behavior.
+- 808 uses a linear internal strike accent. Start CV is latched at trigger edge and scales amp, pitch-envelope amount, and hardness strike.
+- 909 uses the failed-fork velocity/accent behavior and currently has the stronger/nicer accent response.
 
 Do not assume accent is final.
 
@@ -172,7 +180,7 @@ Possible next steps:
 
 - Fine tune 909 pitch offset so engine switching lands closer musically.
 - Keep 909 character while improving Station CV tracking.
-- Revisit 808 accent carefully.
+- Revisit 808 accent carefully, starting from the linear internal strike method.
 - Add engine 3 only after 808/909 switching is stable and documented.
 
 For 909 pitch matching: adjust its own oscillator constants or base offset. Do not swap in the 808 oscillator/envelope wholesale.

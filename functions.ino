@@ -9,6 +9,16 @@ int kick909AccentCurve(int accent)
     return 30 + (((accent - 75) * 30) / 52);
 }
 
+void recallKickEngineParams()
+{
+    for (int j = 0; j < 4; j++)
+    {
+        instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
+    }
+    kickPage2Params[kickEngine][0] = kickEngineParams[kickEngine][2];
+    kickPage2Params[kickEngine][1] = kickEngineParams[kickEngine][3];
+}
+
 void checkInterface(){
     // Read pots + CVs
     int param1Pot = analogRead(CHORD_POT_PIN); 
@@ -37,6 +47,12 @@ void checkButton(){
             if (shiftTimer < 3000 && modeChanged == false)
             {
                 kickEngine = kickEngine == KICK_ENGINE_808 ? KICK_ENGINE_909 : KICK_ENGINE_808;
+                recallKickEngineParams();
+                kickControlsHoldUntilMove = true;
+                kickParam1HoldUntilMove = true;
+                kickParam2HoldUntilMove = true;
+                lastKickParam1 = param1;
+                lastKickParam2 = param2;
             }
             shiftTimer  = 0;
             modeChanged = false;
@@ -52,6 +68,11 @@ void checkButton(){
         {
             controlPage2 = true;
         }
+        kickControlsHoldUntilMove = true;
+        kickParam1HoldUntilMove = true;
+        kickParam2HoldUntilMove = true;
+        lastKickParam1 = param1;
+        lastKickParam2 = param2;
         modeChanged = true;
     }
     instrument = BASS_DRUM;
@@ -100,6 +121,17 @@ void checkButton(){
             {
               EEPROM.write(j, instrumentsParams[BASS_DRUM][j]);
             }
+            for (int engine = 0; engine < 2; engine++)
+            {
+              for (int j = 0; j < 4; j++)
+              {
+                EEPROM.write(30 + (engine * 4) + j, kickEngineParams[engine][j]);
+              }
+              for (int j = 0; j < 2; j++)
+              {
+                EEPROM.write(20 + (engine * 2) + j, kickPage2Params[engine][j]);
+              }
+            }
             EEPROM.write(17, instrument);
             hasBeenSaved = true;
           }
@@ -127,8 +159,16 @@ void controlInstrumentParams(){
     // BD: 30 tune, 31 decay, 33 pitchenv, 34 hardness, 
     voice1.controlChange(30, instrumentsParams[BASS_DRUM][0], 1);
     voice1.controlChange(31, instrumentsParams[BASS_DRUM][1], 1);
-    voice1.controlChange(33, instrumentsParams[BASS_DRUM][2], 1);
-    voice1.controlChange(34, instrumentsParams[BASS_DRUM][3], 1);
+    if (kickEngine == KICK_ENGINE_909)
+    {
+        voice1.controlChange(33, kickLatchedAccent, 1);
+        voice1.controlChange(34, kickLatchedAccent, 1);
+    }
+    else
+    {
+        voice1.controlChange(33, kickPage2Params[kickEngine][0], 1);
+        voice1.controlChange(34, kickPage2Params[kickEngine][1], 1);
+    }
     voice1.controlChange(35, param1CV, 1);
     voice1.controlChange(36, param2CV, 1);
     voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
@@ -136,7 +176,16 @@ void controlInstrumentParams(){
 }
 
 void updateKickParam(int paramIndex, int value){
-    instrumentsParams[BASS_DRUM][paramIndex] = value;
+    kickEngineParams[kickEngine][paramIndex] = value;
+    if (paramIndex >= 2)
+    {
+        kickPage2Params[kickEngine][paramIndex - 2] = value;
+        instrumentsParams[BASS_DRUM][paramIndex] = value;
+    }
+    else
+    {
+        instrumentsParams[BASS_DRUM][paramIndex] = value;
+    }
 }
 
 void setControlValues(){  
@@ -144,15 +193,41 @@ void setControlValues(){
     if (buttonState == 0)
     {
         int firstParam = controlPage2 == false ? 0 : 2;
-        updateKickParam(firstParam, param1);
-        updateKickParam(firstParam + 1, param2);
+        if (kickControlsHoldUntilMove == true)
+        {
+            boolean param1Moved = abs(param1 - lastKickParam1) > 1;
+            boolean param2Moved = abs(param2 - lastKickParam2) > 1;
+            if (kickParam1HoldUntilMove == false || param1Moved)
+            {
+                updateKickParam(firstParam, param1);
+                lastKickParam1 = param1;
+                kickParam1HoldUntilMove = false;
+            }
+            if (kickParam2HoldUntilMove == false || param2Moved)
+            {
+                updateKickParam(firstParam + 1, param2);
+                lastKickParam2 = param2;
+                kickParam2HoldUntilMove = false;
+            }
+            if (kickParam1HoldUntilMove == false && kickParam2HoldUntilMove == false)
+            {
+                kickControlsHoldUntilMove = false;
+            }
+        }
+        else
+        {
+            updateKickParam(firstParam, param1);
+            updateKickParam(firstParam + 1, param2);
+            lastKickParam1 = param1;
+            lastKickParam2 = param2;
+        }
     }
 }
 
 void selectInstrument(){
     instrument = BASS_DRUM;
-    digitalWrite(LED3, kickEngine == KICK_ENGINE_808 ? HIGH : LOW);
-    digitalWrite(LED2, kickEngine == KICK_ENGINE_909 ? HIGH : LOW);
+    digitalWrite(LED3, kickEngine == KICK_ENGINE_909 ? HIGH : LOW);
+    digitalWrite(LED2, kickEngine == KICK_ENGINE_808 ? HIGH : LOW);
     digitalWrite(LED1, LOW);
     digitalWrite(LED0, LOW);
     voice1.controlChange(28, 15, 1);
@@ -162,11 +237,18 @@ void trigInstrument(){
     int gateState = digitalRead(RESET_CV);
     if (gateState == 1 && activeTrig == false)
     {
+      param2CV = analogRead(ROOT_CV_PIN);
       if (param2CV > 96)
       {
           kickAccentCvSeen = true;
       }
       kickLatchedAccent = kickAccentCvSeen ? constrain(param2CV / 64.5, 0, 127) : 75;
+      voice1.controlChange(36, param2CV, 1);
+      if (kickEngine == KICK_ENGINE_909)
+      {
+          voice1.controlChange(33, kickLatchedAccent, 1);
+          voice1.controlChange(34, kickLatchedAccent, 1);
+      }
       voice1.controlChange(44, kick909AccentCurve(kickLatchedAccent), 1);
       voice1.noteOn(32 ,127,1);
       activeTrig = true;

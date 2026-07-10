@@ -25,17 +25,18 @@ Current local build:
 
 ```text
 Target: teensy:avr:teensy31
-Version: v1.0.3
-SHA256: 8f01fdfa61f09430d233af0d91ab4c7acba9f165d933e3619a058ac4f671fca0
+Version: v1.0.4
+SHA256: 64d48d6004de5d6b01f0fec354a243b29d67b56cae90c09624c71eff74d254ac
 ```
 
 ## Quick Start
 
 1. Patch a trigger or gate into the reset/trigger input.
 2. Patch the audio output to your mixer.
-3. Use a short button tap to switch 808 / 909.
-4. Use a long button hold to switch parameter pages.
-5. Patch pitch CV to Station CV and velocity/accent CV to Start CV.
+3. The module starts on the 909 engine.
+4. Use a short button tap to switch 909 / 808.
+5. Use a long button hold to switch parameter pages.
+6. Patch pitch CV to Station CV and velocity/accent CV to Start CV.
 
 ## Panel Controls
 
@@ -44,10 +45,10 @@ The names below use the Radio Music front panel.
 | Action | Result |
 | --- | --- |
 | Trigger/gate input | Fires the selected kick |
-| Short button tap | Toggle 808 / 909 |
+| Short button tap | Toggle 909 / 808 |
 | Long button hold | Toggle page 1 / page 2 |
-| LED3 on | 808 engine selected |
-| LED2 on | 909 engine selected |
+| LED3 on | 909 engine selected |
+| LED2 on | 808 engine selected |
 | Flashing reset LED | Page 2 active |
 
 ## Parameter Pages
@@ -61,8 +62,8 @@ Notes:
 
 - Start CV is always accent.
 - Page 2 Start is called **click** in this firmware.
-- The 808 engine has the most developed decay and 1V/oct-style pitch behavior.
-- The 909 engine keeps its own punchier synthesis path and uses cached pitch-CV scaling for stable switching/performance.
+- The 909 engine is the default engine and has the strongest current velocity/accent response.
+- The 808 engine has long decay behavior, 1V/oct-style pitch control, and a linear internal strike accent.
 
 ## Pitch CV
 
@@ -102,11 +103,12 @@ For OXI One velocity CV:
 
 Current behavior:
 
-- 808 accent uses the current saturation/drive test path.
-- 909 accent uses the velocity-style response from the earlier failed fork.
+- 909 accent uses a velocity-style response across body, pitch, and click energy.
+- 808 accent is a simpler linear internal strike control. It scales the amp/pitch/hardness strike at the trigger edge.
+- 808 accent does not use the rejected post-drive/click/trim experiments.
 - Accent should add performance character without killing the kick decay.
 
-Accent is still a tuning area. Treat the current implementation as a test, not a final solved design.
+Accent is still a tuning area, but the current 808 path is intentionally simple and stable.
 
 ## Decay And Gates
 

@@ -102,6 +102,8 @@ typedef struct Kick__ctx_type_8 {
    fix16_t pitchEnvInt;
    fix16_t hardness;
    fix16_t accentDrive;
+   fix16_t clickEnv;
+   int clickNoise;
    uint8_t gate;
    fix16_t decay;
    Kick__ctx_type_5 _inst92;

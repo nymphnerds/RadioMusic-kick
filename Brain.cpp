@@ -9,6 +9,10 @@ static const fix16_t KICK_ACCENT_CV_FULL_SCALE = 0x20000000 /* 8192.000000 */;
 static const fix16_t KICK_ACCENT_DRIVE = 0x30000 /* 3.000000 */;
 static const fix16_t KICK_ACCENT_CURVE = 0x18000 /* 1.500000 */;
 static const fix16_t KICK_ACCENT_MIX = 0xc000 /* 0.750000 */;
+static const fix16_t KICK808_STRIKE_BASE = 0x599a /* 0.350006 */;
+static const fix16_t KICK808_STRIKE_RANGE = 0xa666 /* 0.649994 */;
+static const fix16_t KICK808_PITCH_OFFSET = 0xcb30 /* 0.793701 */;
+static const fix16_t KICK909_SEMITONE_UP = 0x10f39 /* 1.059464 */;
 
 void Kick__ctx_type_0_init(Kick__ctx_type_0 &_output_){
    Kick__ctx_type_0 _ctx;
@@ -212,7 +216,7 @@ fix16_t Kick_customBridgeT(Kick__ctx_type_7 &_ctx, fix16_t tune, fix16_t tuneCV,
    uint8_t _cond_99;
    _cond_99 = (Kick_change(_ctx._inst83,(tune + tuneCV)) || Kick_change(_ctx._inst84,_ctx.env));
    if(_cond_99){
-      _ctx.rate = fix_mul((Kick_pitchToRate((tune + _ctx.env)) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCV));
+      _ctx.rate = fix_mul(fix_mul((Kick_pitchToRate((tune + _ctx.env)) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCV)),KICK808_PITCH_OFFSET);
    }
    if(reset){ _ctx.phase = fix_mul(hardness,0x81 /* 0.001969 */); }
    else
@@ -229,6 +233,8 @@ void Kick__ctx_type_8_init(Kick__ctx_type_8 &_output_){
    _ctx.pitchEnvInt = 0x0 /* 0.000000 */;
    _ctx.hardness = 0x0 /* 0.000000 */;
    _ctx.accentDrive = 0x0 /* 0.000000 */;
+   _ctx.clickEnv = 0x0 /* 0.000000 */;
+   _ctx.clickNoise = 22222;
    _ctx.gate = 0;
    _ctx.decay = 0x0 /* 0.000000 */;
    Kick__ctx_type_5_init(_ctx._inst92);
@@ -244,6 +250,8 @@ void Kick_process_init(Kick__ctx_type_8 &_output_){
 }
 
 fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t pitchEnvIntI, fix16_t hardnessI, fix16_t accentDriveI){
+   uint8_t wasGate;
+   wasGate = _ctx.gate;
    uint8_t _cond_101;
    _cond_101 = (gateI >= 0x8000 /* 0.500000 */);
    if(_cond_101){
@@ -263,14 +271,25 @@ fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16
    _ctx.pitchEnvInt = pitchEnvIntI;
    _ctx.hardness = hardnessI;
    _ctx.accentDrive = accentDriveI;
+   if(_ctx.gate && !wasGate){
+      fix16_t accent;
+      accent = 0x0 /* 0.000000 */;
+      if(_ctx.accentDrive > 0x0 /* 0.000000 */){
+         accent = fix_div(_ctx.accentDrive,KICK_ACCENT_CV_FULL_SCALE);
+         if(accent > 0x10000 /* 1.000000 */){
+            accent = 0x10000 /* 1.000000 */;
+         }
+      }
+      _ctx.clickEnv = KICK808_STRIKE_BASE + fix_mul(accent,KICK808_STRIKE_RANGE);
+   }
    fix16_t kick;
    fix16_t sine;
    fix16_t amp;
-   sine = Kick_customBridgeT(_ctx._inst90,_ctx.tune,_ctx.tuneCV,_ctx.gate,_ctx.pitchEnvInt,_ctx.decay,_ctx.hardness);
+   sine = Kick_customBridgeT(_ctx._inst90,_ctx.tune,_ctx.tuneCV,_ctx.gate,fix_mul(_ctx.pitchEnvInt,_ctx.clickEnv),_ctx.decay,fix_mul(_ctx.hardness,_ctx.clickEnv));
    amp = Kick_ampEnvelope(_ctx._inst91,_ctx.decay,_ctx.gate);
-   kick = fix_mul(sine,amp);
+   kick = fix_mul(sine,fix_mul(amp,_ctx.clickEnv));
    kick = Kick_LP(_ctx._inst92,kick);
-   return Kick_accentDrive(kick,_ctx.accentDrive);
+   return kick;
 }
 
 void Kick909__ctx_type_0_init(Kick909__ctx_type_0 &_output_){
@@ -360,7 +379,7 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
    if(_ctx.tune != tuneI || _ctx.tuneCV != tuneCVI){
       _ctx.tune = tuneI;
       _ctx.tuneCV = tuneCVI;
-      _ctx.bodyRate = fix_mul((Kick_pitchToRate(tuneI) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCVI));
+      _ctx.bodyRate = fix_mul(fix_mul((Kick_pitchToRate(tuneI) + 0x41 /* 0.001000 */),Kick_cvToRateMultiplier(tuneCVI)),KICK909_SEMITONE_UP);
    }
    _ctx.phase = ((_ctx.phase + _ctx.bodyRate + fix_mul(pitchAmount,_ctx.pitchEnv)) % 0x10000 /* 1.000000 */);
 
@@ -380,7 +399,7 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
    fix16_t bodyFall;
    bodyFall = fix_div(0x10000 /* 1.000000 */,((decayI << 7) + 0x240000 /* 36.000000 */));
    if(_ctx.gate && _ctx.gateSamples > 512){
-      bodyFall = (bodyFall >> 4) + (_ctx.bodyEnv >> 13);
+      bodyFall = (bodyFall >> 5) + (_ctx.bodyEnv >> 14);
    }
    _ctx.bodyEnv = _ctx.bodyEnv - bodyFall;
    if(_ctx.bodyEnv < 0x0 /* 0.000000 */){
@@ -404,7 +423,7 @@ void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
    Brain__ctx_type_0 _ctx;
    fix_init_array(7,0x0 /* 0.000000 */,_ctx.kickParam);
    _ctx.voice1 = 0x0 /* 0.000000 */;
-   _ctx.kick909Mode = 0;
+   _ctx.kick909Mode = 1;
    _ctx.kick909Accent = 0x0 /* 0.000000 */;
    Kick909__ctx_type_0_init(_ctx._inst161);
    Kick__ctx_type_8_init(_ctx._inst160);
@@ -496,7 +515,7 @@ void Brain_default(Brain__ctx_type_0 &_ctx){
    _ctx.kickParam[5] = 0x0 /* 0.000000 */;
    _ctx.kickParam[6] = 0x0 /* 0.000000 */;
    _ctx.voice1 = 0x0 /* 0.000000 */;
-   _ctx.kick909Mode = 0;
+   _ctx.kick909Mode = 1;
    _ctx.kick909Accent = 0x0 /* 0.000000 */;
 }
 
