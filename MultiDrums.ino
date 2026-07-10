@@ -180,6 +180,10 @@ void loop() {
           kickEngineParams[KICK_ENGINE_909][i] = instrumentsParams[BASS_DRUM][i];
        }
        initializeKickSettingsPersistence();
+       checkInterface();
+       kickControlsHoldUntilMove = true;
+       lastKickParam1 = param1;
+       lastKickParam2 = param2;
        sampleNumber2 = instrumentsParams[instrument][3]/20;
        if (sampleNumber2 == 0)
           {
