@@ -1,0 +1,84 @@
+name: Publish v1.0.6 release
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/publish-v1.0.6.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tagged release
+        uses: actions/checkout@v4
+        with:
+          ref: v1.0.6
+
+      - name: Verify release files
+        shell: bash
+        run: |
+          test -f MultiDrums.hex
+          test -f releases/RadioMusic-Kick-v1.0.6.zip
+          echo "2fb7f9d9400dbb40512903cbd79c015f5c7fdc79eeb027bf1b7ecb9f97f4ef07  MultiDrums.hex" | sha256sum --check --strict
+          echo "e568fe2eb9b56b99cceb64ace93fbfb21924cdc568d6c4f2f1d7703f70825f55  releases/RadioMusic-Kick-v1.0.6.zip" | sha256sum --check --strict
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          RadioMusic Kick turns Music Thing Modular Radio Music / Radio Station hardware into a dedicated synthesized bass-drum voice.
+
+          ## v1.0.6
+
+          - Four switchable kick engines: **909**, **808**, **Hot 909**, and **Dirty 808**.
+          - Separate saved tune, decay, and page 2 macro settings for every engine.
+          - Short button tap cycles engines; long hold switches parameter pages.
+          - Station CV provides pitch control; Start CV provides velocity/accent.
+          - Page 1 tune/decay storage remains separate from page 2 engine macros.
+
+          ## Downloads
+
+          - **MultiDrums.hex** — flash this to a Teensy 3.1 / `teensy:avr:teensy31` target.
+          - **RadioMusic-Kick-v1.0.6.zip** — packaged release archive containing the firmware.
+
+          ## SHA256
+
+          ```text
+          MultiDrums.hex
+          2fb7f9d9400dbb40512903cbd79c015f5c7fdc79eeb027bf1b7ecb9f97f4ef07
+
+          RadioMusic-Kick-v1.0.6.zip
+          e568fe2eb9b56b99cceb64ace93fbfb21924cdc568d6c4f2f1d7703f70825f55
+          ```
+          EOF
+
+      - name: Create release or refresh its assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.6 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit v1.0.6 \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "RadioMusic Kick v1.0.6" \
+              --notes-file release-notes.md
+            gh release upload v1.0.6 \
+              MultiDrums.hex \
+              releases/RadioMusic-Kick-v1.0.6.zip \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create v1.0.6 \
+              MultiDrums.hex \
+              releases/RadioMusic-Kick-v1.0.6.zip \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "RadioMusic Kick v1.0.6" \
+              --notes-file release-notes.md
+          fi
