@@ -17,12 +17,16 @@ static const fix16_t KICK808_SAT_RANGE = 0x4a95 /* 0.291336 */;
 static const fix16_t KICK808_SAT_DRIVE = 0x7333 /* 0.449997 */;
 static const fix16_t KICK808_SAT_CURVE = 0x999a /* 0.600006 */;
 static const fix16_t KICK808_SAT_MIX = 0x3852 /* 0.220001 */;
+static const fix16_t KICK808_ACCENT_SAT_DRIVE = 0x14000 /* 1.250000 */;
+static const fix16_t KICK808_ACCENT_SAT_CURVE = 0xb333 /* 0.699997 */;
+static const fix16_t KICK808_ACCENT_SAT_MIX = 0x4000 /* 0.250000 */;
 static const fix16_t KICK808_BODY_BOOST = 0x7333 /* 0.449997 */;
 static const fix16_t KICK808_PITCH_ENV_SCALE = 0x1800 /* 0.093750 */;
 static const fix16_t KICK808_ACCENT_STRIKE = 0x6000 /* 0.375000 */;
 static const fix16_t KICK808_ATTACK_BASE = 0x2000 /* 0.125000 */;
 static const fix16_t KICK808_ATTACK_RANGE = 0x6000 /* 0.375000 */;
-static const fix16_t KICK808_ATTACK_LEVEL = 0x3000 /* 0.187500 */;
+static const fix16_t KICK808_ATTACK_LEVEL = 0x2400 /* 0.140625 */;
+static const fix16_t KICK808_ATTACK_ACCENT_LEVEL = 0x7000 /* 0.437500 */;
 static const fix16_t KICK909_SEMITONE_UP = 0x10f39 /* 1.059464 */;
 
 void Kick__ctx_type_0_init(Kick__ctx_type_0 &_output_){
@@ -87,6 +91,19 @@ fix16_t Kick808_highVelocitySaturation(fix16_t x, fix16_t highAccent){
    fix16_t shaped;
    shaped = fix_div(driven,0x10000 /* 1.000000 */ + fix_mul(curve,fix_abs(driven)));
    return x + fix_mul(fix_mul(highAccent,KICK808_SAT_MIX),shaped + (- x));
+}
+
+fix16_t Kick808_accentSaturation(fix16_t x, fix16_t accent){
+   if(accent <= 0x0 /* 0.000000 */){
+      return x;
+   }
+   fix16_t drive;
+   drive = 0x10000 /* 1.000000 */ + fix_mul(accent,KICK808_ACCENT_SAT_DRIVE);
+   fix16_t driven;
+   driven = fix_mul(x,drive);
+   fix16_t shaped;
+   shaped = fix_div(driven,0x10000 /* 1.000000 */ + fix_mul(fix_mul(accent,KICK808_ACCENT_SAT_CURVE),fix_abs(driven)));
+   return x + fix_mul(fix_mul(accent,KICK808_ACCENT_SAT_MIX),shaped + (- x));
 }
 
 void Kick__ctx_type_3_init(Kick__ctx_type_3 &_output_){
@@ -335,8 +352,9 @@ fix16_t Kick_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16
    _ctx.clickNoise = (((_ctx.clickNoise * 17389) + 7919) % 32768);
    fix16_t click;
    click = fix_mul(int_to_fix(_ctx.clickNoise),0x2 /* 0.000031 */) + -0x8000 /* -0.500000 */;
-   kick = kick + fix_mul(click,fix_mul(_ctx.attackEnv,KICK808_ATTACK_LEVEL + fix_mul(_ctx.accentAmount,KICK808_ATTACK_LEVEL)));
+   kick = kick + fix_mul(click,fix_mul(_ctx.attackEnv,KICK808_ATTACK_LEVEL + fix_mul(_ctx.accentAmount,KICK808_ATTACK_ACCENT_LEVEL)));
    kick = Kick_LP(_ctx._inst92,kick);
+   kick = Kick808_accentSaturation(kick,_ctx.accentAmount);
    kick = Kick808_highVelocitySaturation(kick,_ctx.highAccentSat);
    if(_ctx.strikeEnv > 0x0 /* 0.000000 */){
       _ctx.strikeEnv = _ctx.strikeEnv - ((_ctx.strikeEnv >> 4) + 0x20 /* 0.000488 */);

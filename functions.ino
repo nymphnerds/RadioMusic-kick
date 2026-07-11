@@ -17,6 +17,121 @@ void recallKickEngineParams()
     }
 }
 
+int kickSettingsValueForSlot(int engine, int slot)
+{
+    if (slot < 4)
+    {
+        return kickEngineParams[engine][slot];
+    }
+    return kickPage2Params[engine][slot - 4];
+}
+
+void setKickSettingsValueForSlot(int engine, int slot, int value)
+{
+    if (slot < 4)
+    {
+        kickEngineParams[engine][slot] = value;
+        return;
+    }
+    kickPage2Params[engine][slot - 4] = value;
+}
+
+int kickSettingsAddress(int offset)
+{
+    return KICK_SETTINGS_EEPROM_BASE + offset;
+}
+
+void writeKickSettingByte(int address, byte value)
+{
+    if (EEPROM.read(address) != value)
+    {
+        EEPROM.write(address, value);
+    }
+}
+
+byte calculateKickSettingsChecksum()
+{
+    byte checksum = 0xA5 ^ KICK_SETTINGS_VERSION;
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int slot = 0; slot < 6; slot++)
+        {
+            byte value = (byte)constrain(kickSettingsValueForSlot(engine, slot), 0, 127);
+            checksum = (byte)((checksum << 1) | (checksum >> 7));
+            checksum ^= value;
+        }
+    }
+    return checksum;
+}
+
+boolean loadKickSettingsFromEEPROM()
+{
+    if (EEPROM.read(kickSettingsAddress(0)) != KICK_SETTINGS_MAGIC_0 ||
+        EEPROM.read(kickSettingsAddress(1)) != KICK_SETTINGS_MAGIC_1 ||
+        EEPROM.read(kickSettingsAddress(2)) != KICK_SETTINGS_VERSION)
+    {
+        return false;
+    }
+
+    int loaded[2][6];
+    byte checksum = 0xA5 ^ KICK_SETTINGS_VERSION;
+    int address = kickSettingsAddress(3);
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int slot = 0; slot < 6; slot++)
+        {
+            int value = EEPROM.read(address++);
+            if (value < 0 || value > 127)
+            {
+                return false;
+            }
+            loaded[engine][slot] = value;
+            checksum = (byte)((checksum << 1) | (checksum >> 7));
+            checksum ^= (byte)value;
+        }
+    }
+
+    if (EEPROM.read(kickSettingsAddress(3 + KICK_SETTINGS_PARAM_BYTES)) != checksum)
+    {
+        return false;
+    }
+
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int slot = 0; slot < 6; slot++)
+        {
+            setKickSettingsValueForSlot(engine, slot, loaded[engine][slot]);
+        }
+    }
+    return true;
+}
+
+void captureObservedKickSettings()
+{
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int slot = 0; slot < 6; slot++)
+        {
+            kickSettingsObserved[engine][slot] = kickSettingsValueForSlot(engine, slot);
+        }
+    }
+}
+
+boolean kickSettingsHaveChanged()
+{
+    for (int engine = 0; engine < 2; engine++)
+    {
+        for (int slot = 0; slot < 6; slot++)
+        {
+            if (kickSettingsObserved[engine][slot] != kickSettingsValueForSlot(engine, slot))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void markKickSettingsDirty()
 {
     kickSettingsDirty = true;
@@ -25,34 +140,49 @@ void markKickSettingsDirty()
 
 void saveKickSettings()
 {
-    for( int j = 0; j <4; j++)
-    {
-        EEPROM.write(j, instrumentsParams[BASS_DRUM][j]);
-    }
+    writeKickSettingByte(kickSettingsAddress(0), 0);
+    int address = kickSettingsAddress(3);
     for (int engine = 0; engine < 2; engine++)
     {
-        for (int j = 0; j < 4; j++)
+        for (int slot = 0; slot < 6; slot++)
         {
-            EEPROM.write(30 + (engine * 4) + j, kickEngineParams[engine][j]);
-        }
-        for (int j = 0; j < 2; j++)
-        {
-            EEPROM.write(20 + (engine * 2) + j, kickPage2Params[engine][j]);
+            byte value = (byte)constrain(kickSettingsValueForSlot(engine, slot), 0, 127);
+            writeKickSettingByte(address++, value);
         }
     }
-    EEPROM.write(17, instrument);
+    writeKickSettingByte(kickSettingsAddress(3 + KICK_SETTINGS_PARAM_BYTES), calculateKickSettingsChecksum());
+    writeKickSettingByte(kickSettingsAddress(2), KICK_SETTINGS_VERSION);
+    writeKickSettingByte(kickSettingsAddress(1), KICK_SETTINGS_MAGIC_1);
+    writeKickSettingByte(kickSettingsAddress(0), KICK_SETTINGS_MAGIC_0);
+    captureObservedKickSettings();
+    kickSettingsDirty = false;
+    kickSettingsSaveTimer = 0;
+}
+
+void initializeKickSettingsPersistence()
+{
+    if (!loadKickSettingsFromEEPROM())
+    {
+        saveKickSettings();
+    }
+    captureObservedKickSettings();
     kickSettingsDirty = false;
     kickSettingsSaveTimer = 0;
 }
 
 void saveKickSettingsIfNeeded()
 {
+    if (kickSettingsHaveChanged())
+    {
+        captureObservedKickSettings();
+        markKickSettingsDirty();
+    }
     if (kickSettingsDirty == false)
     {
         return;
     }
     kickSettingsSaveTimer++;
-    if (kickSettingsSaveTimer >= 6000)
+    if (kickSettingsSaveTimer >= KICK_SETTINGS_SAVE_DELAY_FRAMES)
     {
         saveKickSettings();
     }

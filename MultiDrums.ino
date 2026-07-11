@@ -27,6 +27,12 @@
 #define LED2 4
 #define LED3 3
 #define FRAME_DIVIDER 1000
+#define KICK_SETTINGS_EEPROM_BASE 64
+#define KICK_SETTINGS_MAGIC_0 0x52
+#define KICK_SETTINGS_MAGIC_1 0x4B
+#define KICK_SETTINGS_VERSION 2
+#define KICK_SETTINGS_SAVE_DELAY_FRAMES 6000
+#define KICK_SETTINGS_PARAM_BYTES 12
 
 Bounce pushbutton1 = Bounce(RESET_BUTTON, 40);  // 10 ms debounce
 
@@ -59,6 +65,7 @@ boolean kickParam2HoldUntilMove = false;
 boolean kickControlsJustSwitched = false;
 boolean kickSettingsDirty = false;
 int kickSettingsSaveTimer = 0;
+int kickSettingsObserved[2][6];
 int lastKickParam1 = -1;
 int lastKickParam2 = -1;
 
@@ -135,6 +142,18 @@ void loop() {
        {
           instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
        }
+       initializeKickSettingsPersistence();
+       for (int j = 0; j < 2; j++)
+       {
+          instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
+       }
+       checkInterface();
+       kickControlsHoldUntilMove = true;
+       kickParam1HoldUntilMove = true;
+       kickParam2HoldUntilMove = true;
+       kickControlsJustSwitched = true;
+       lastKickParam1 = param1;
+       lastKickParam2 = param2;
        instrument = BASS_DRUM;
        hasBeenLoad = true;
   }
