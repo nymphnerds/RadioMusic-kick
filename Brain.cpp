@@ -6,9 +6,6 @@ static const float KICK_ADC_REF = 3.3f;
 static const float KICK_TUNE_CV_SCALE = 1.0f;
 static const fix16_t KICK_GATE_DECAY_BOOST = 0x800000 /* 128.000000 */;
 static const fix16_t KICK_ACCENT_CV_FULL_SCALE = 0x20000000 /* 8192.000000 */;
-static const fix16_t KICK_ACCENT_DRIVE = 0x30000 /* 3.000000 */;
-static const fix16_t KICK_ACCENT_CURVE = 0x18000 /* 1.500000 */;
-static const fix16_t KICK_ACCENT_MIX = 0xc000 /* 0.750000 */;
 static const fix16_t KICK808_STRIKE_BASE = 0x7333 /* 0.449997 */;
 static const fix16_t KICK808_STRIKE_RANGE = 0xc000 /* 0.750000 */;
 static const fix16_t KICK808_PITCH_OFFSET = 0xcb30 /* 0.793701 */;
@@ -59,23 +56,6 @@ fix16_t Kick_cvToRateMultiplier(fix16_t cvRaw){
 
 fix16_t Kick_decayToFallingRate(fix16_t d){
    return fix_div(0x10000 /* 1.000000 */,fix_mul(d,0x15b3e7c /* 347.244094 */));
-}
-
-fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV){
-   if(accentCV <= 0x0 /* 0.000000 */){
-      return x;
-   }
-   fix16_t accent;
-   accent = fix_div(accentCV,KICK_ACCENT_CV_FULL_SCALE);
-   fix16_t drive;
-   drive = (0x10000 /* 1.000000 */ + fix_mul(accent,KICK_ACCENT_DRIVE));
-   fix16_t driven;
-   driven = fix_mul(x,drive);
-   fix16_t curve;
-   curve = fix_mul(accent,KICK_ACCENT_CURVE);
-   fix16_t shaped;
-   shaped = fix_div(driven,(0x10000 /* 1.000000 */ + fix_mul(curve,fix_abs(driven))));
-   return (x + fix_mul(fix_mul(accent,KICK_ACCENT_MIX),(shaped + (- x))));
 }
 
 fix16_t Kick808_highVelocitySaturation(fix16_t x, fix16_t highAccent){
@@ -498,14 +478,76 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
    return Kick_LP(_ctx._lp,Kick909_clip(mixed));
 }
 
+fix16_t Kick_cvToAccent127(fix16_t accentCV){
+   if(accentCV <= 0x0 /* 0.000000 */){
+      return 0x0 /* 0.000000 */;
+   }
+   fix16_t accent;
+   accent = fix_div(accentCV,0x400000 /* 64.000000 */);
+   if(accent > 0x7f0000 /* 127.000000 */){
+      accent = 0x7f0000 /* 127.000000 */;
+   }
+   return accent;
+}
+
+fix16_t KickHot909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t punchI, fix16_t driveI, fix16_t accentCV){
+   fix16_t accent127;
+   accent127 = Kick_cvToAccent127(accentCV);
+   fix16_t kick;
+   kick = Kick909_process(_ctx,gateI,tuneI,tuneCVI,decayI,punchI,driveI,accent127);
+   fix16_t accent;
+   accent = fix_div(accentCV,KICK_ACCENT_CV_FULL_SCALE);
+   if(accent > 0x10000 /* 1.000000 */){
+      accent = 0x10000 /* 1.000000 */;
+   }
+   fix16_t drive;
+   drive = fix_div(driveI,0x7f0000 /* 127.000000 */);
+   if(drive > 0x10000 /* 1.000000 */){
+      drive = 0x10000 /* 1.000000 */;
+   }
+   fix16_t amount;
+   amount = drive + fix_mul(accent,0x10000 /* 1.000000 */);
+   if(amount > 0x10000 /* 1.000000 */){
+      amount = 0x10000 /* 1.000000 */;
+   }
+   fix16_t driven;
+   driven = fix_mul(kick,0x10000 /* 1.000000 */ + fix_mul(amount,0x10000 /* 1.000000 */));
+   return fix_div(driven,0x10000 /* 1.000000 */ + fix_mul(amount,fix_abs(driven)));
+}
+
+fix16_t KickDirty808_process(Kick__ctx_type_8 &_ctx, fix16_t gateI, fix16_t tuneI, fix16_t tuneCVI, fix16_t decayI, fix16_t sweepI, fix16_t driveI, fix16_t accentCV){
+   fix16_t kick;
+   kick = Kick_process(_ctx,gateI,tuneI,tuneCVI,decayI,sweepI,driveI,accentCV);
+   fix16_t accent;
+   accent = fix_div(accentCV,KICK_ACCENT_CV_FULL_SCALE);
+   if(accent > 0x10000 /* 1.000000 */){
+      accent = 0x10000 /* 1.000000 */;
+   }
+   fix16_t drive;
+   drive = fix_div(driveI,0x7f0000 /* 127.000000 */);
+   if(drive > 0x10000 /* 1.000000 */){
+      drive = 0x10000 /* 1.000000 */;
+   }
+   fix16_t amount;
+   amount = fix_mul(drive,0xc000 /* 0.750000 */) + fix_mul(accent,0x8000 /* 0.500000 */);
+   if(amount > 0x10000 /* 1.000000 */){
+      amount = 0x10000 /* 1.000000 */;
+   }
+   fix16_t driven;
+   driven = fix_mul(kick,0x10000 /* 1.000000 */ + fix_mul(amount,0x18000 /* 1.500000 */));
+   return fix_div(driven,0x10000 /* 1.000000 */ + fix_mul(amount,fix_abs(driven)));
+}
+
 void Brain__ctx_type_0_init(Brain__ctx_type_0 &_output_){
    Brain__ctx_type_0 _ctx;
    fix_init_array(7,0x0 /* 0.000000 */,_ctx.kickParam);
    _ctx.voice1 = 0x0 /* 0.000000 */;
-   _ctx.kick909Mode = 1;
+   _ctx.kickEngine = 1;
    _ctx.kick909Accent = 0x0 /* 0.000000 */;
-   Kick909__ctx_type_0_init(_ctx._inst161);
-   Kick__ctx_type_8_init(_ctx._inst160);
+   Kick909__ctx_type_0_init(_ctx.hot909);
+   Kick__ctx_type_8_init(_ctx.dirty808);
+   Kick909__ctx_type_0_init(_ctx.kick909);
+   Kick__ctx_type_8_init(_ctx.kick808);
    _output_ = _ctx;
    return ;
 }
@@ -516,12 +558,20 @@ void Brain_process_init(Brain__ctx_type_0 &_output_){
 }
 
 fix16_t Brain_process(Brain__ctx_type_0 &_ctx, fix16_t input){
-   if(_ctx.kick909Mode){
-      _ctx.voice1 = Kick909_process(_ctx._inst161,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kick909Accent);
+   if(_ctx.kickEngine == 1){
+      _ctx.voice1 = Kick909_process(_ctx.kick909,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kick909Accent);
+   }
+   else if(_ctx.kickEngine == 2)
+   {
+      _ctx.voice1 = KickHot909_process(_ctx.hot909,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
+   }
+   else if(_ctx.kickEngine == 3)
+   {
+      _ctx.voice1 = KickDirty808_process(_ctx.dirty808,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
    }
    else
    {
-      _ctx.voice1 = Kick_process(_ctx._inst160,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
+      _ctx.voice1 = Kick_process(_ctx.kick808,_ctx.kickParam[0],_ctx.kickParam[1],_ctx.kickParam[5],_ctx.kickParam[2],_ctx.kickParam[3],_ctx.kickParam[4],_ctx.kickParam[6]);
    }
    return (_ctx.voice1 >> 1);
 }
@@ -573,7 +623,7 @@ void Brain_controlChange(Brain__ctx_type_0 &_ctx, int control, int value, int ch
       _ctx.kickParam[6] = int_to_fix(value);
    }
    else if(control == 43){
-      _ctx.kick909Mode = (value > 0);
+      _ctx.kickEngine = value;
    }
    else if(control == 44){
       _ctx.kick909Accent = int_to_fix(value);
@@ -594,7 +644,7 @@ void Brain_default(Brain__ctx_type_0 &_ctx){
    _ctx.kickParam[5] = 0x0 /* 0.000000 */;
    _ctx.kickParam[6] = 0x0 /* 0.000000 */;
    _ctx.voice1 = 0x0 /* 0.000000 */;
-   _ctx.kick909Mode = 1;
+   _ctx.kickEngine = 1;
    _ctx.kick909Accent = 0x0 /* 0.000000 */;
 }
 

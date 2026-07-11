@@ -25,8 +25,6 @@ fix16_t Kick_cvToRateMultiplier(fix16_t cvRaw);
 
 fix16_t Kick_decayToFallingRate(fix16_t d);
 
-fix16_t Kick_accentDrive(fix16_t x, fix16_t accentCV);
-
 typedef struct Kick__ctx_type_3 {
    uint8_t pre;
 } Kick__ctx_type_3;
@@ -149,10 +147,12 @@ fix16_t Kick909_process(Kick909__ctx_type_0 &_ctx, fix16_t gateI, fix16_t tuneI,
 typedef struct Brain__ctx_type_0 {
    fix16_t kickParam[7];
    fix16_t voice1;
-   int kick909Mode;
+   int kickEngine;
    fix16_t kick909Accent;
-   Kick909__ctx_type_0 _inst161;
-   Kick__ctx_type_8 _inst160;
+   Kick909__ctx_type_0 hot909;
+   Kick__ctx_type_8 dirty808;
+   Kick909__ctx_type_0 kick909;
+   Kick__ctx_type_8 kick808;
 } Brain__ctx_type_0;
 
 typedef Brain__ctx_type_0 Brain_process_type;

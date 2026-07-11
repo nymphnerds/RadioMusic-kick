@@ -9,11 +9,17 @@
 
 #define ADC_BITS 13
 #define ADC_MAX_VAL 8192
-#define POT_TOLERANCE 5
 
 #define BASS_DRUM 0
+#define KICK_ENGINE_COUNT 4
+#define KICK_ENGINE_PARAM_COUNT 4
+#define KICK_PRIMARY_PARAM_COUNT 2
+#define KICK_PAGE2_PARAM_COUNT 2
+#define KICK_SETTINGS_SLOT_COUNT 6
 #define KICK_ENGINE_808 0
 #define KICK_ENGINE_909 1
+#define KICK_ENGINE_HOT_909 2
+#define KICK_ENGINE_DIRTY_808 3
 
 #define CHORD_POT_PIN 9 // pin for Chord pot
 #define CHORD_CV_PIN 6 // pin for Chord CV 
@@ -30,18 +36,18 @@
 #define KICK_SETTINGS_EEPROM_BASE 64
 #define KICK_SETTINGS_MAGIC_0 0x52
 #define KICK_SETTINGS_MAGIC_1 0x4B
-#define KICK_SETTINGS_VERSION 2
+#define KICK_SETTINGS_VERSION 4
 #define KICK_SETTINGS_SAVE_DELAY_FRAMES 6000
-#define KICK_SETTINGS_PARAM_BYTES 12
+#define KICK_SETTINGS_PARAM_BYTES (KICK_ENGINE_COUNT * KICK_SETTINGS_SLOT_COUNT)
 
 Bounce pushbutton1 = Bounce(RESET_BUTTON, 40);  // 10 ms debounce
 
 boolean startCounter = false;
 int param1 = 64;
 int param2 = 64;
-int instrumentsParams[1][4]; // [kick][paramNumber]
-int kickEngineParams[2][4]; // [engine][tune, decay, pitch envelope, click]
-int kickPage2Params[2][2]; // [engine][pitch envelope, click]
+int instrumentsParams[1][KICK_ENGINE_PARAM_COUNT];
+int kickEngineParams[KICK_ENGINE_COUNT][KICK_ENGINE_PARAM_COUNT];
+int kickPage2Params[KICK_ENGINE_COUNT][KICK_PAGE2_PARAM_COUNT];
 int frame;
 int dividedFrame;
 int param1CV;
@@ -65,7 +71,7 @@ boolean kickParam2HoldUntilMove = false;
 boolean kickControlsJustSwitched = false;
 boolean kickSettingsDirty = false;
 int kickSettingsSaveTimer = 0;
-int kickSettingsObserved[2][6];
+int kickSettingsObserved[KICK_ENGINE_COUNT][KICK_SETTINGS_SLOT_COUNT];
 int lastKickParam1 = -1;
 int lastKickParam2 = -1;
 
@@ -74,13 +80,11 @@ AudioMixer4              mixer1;         //xy=489,362
 AudioOutputAnalog        dac1;           //xy=655,361
 AudioConnection          patchCord1(voice1, 0, mixer1, 0);
 AudioConnection          patchCord5(mixer1, dac1);
-// GUItool: end automatically generated code
-
 void setup() {
   mixer1.gain(0, 2.3);
   AudioMemory(12); //50
   voice1.begin();
-  voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
+  voice1.controlChange(43, kickEngine, 1);
   pinMode(RESET_BUTTON, INPUT);
   pinMode(RESET_CV, INPUT); 
   pinMode(RESET_LED, OUTPUT);
@@ -96,7 +100,7 @@ void loop() {
 
   if (hasBeenLoad == false)
   {
-       for( int j = 0; j <4; j++)
+       for( int j = 0; j < KICK_ENGINE_PARAM_COUNT; j++)
        {
         int value = EEPROM.read(j);
         if (value < 128)
@@ -108,16 +112,16 @@ void loop() {
           instrumentsParams[BASS_DRUM][j] = 0;
         }
        }
-       for (int engine = 0; engine < 2; engine++)
+       for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
        {
-          for (int j = 0; j < 4; j++)
+          for (int j = 0; j < KICK_ENGINE_PARAM_COUNT; j++)
           {
             kickEngineParams[engine][j] = instrumentsParams[BASS_DRUM][j];
           }
        }
        for (int engine = 0; engine < 2; engine++)
        {
-          for (int j = 0; j < 4; j++)
+          for (int j = 0; j < KICK_ENGINE_PARAM_COUNT; j++)
           {
             int value = EEPROM.read(30 + (engine * 4) + j);
             if (value < 128)
@@ -125,7 +129,7 @@ void loop() {
               kickEngineParams[engine][j] = value;
             }
           }
-          for (int j = 0; j < 2; j++)
+          for (int j = 0; j < KICK_PAGE2_PARAM_COUNT; j++)
           {
             int value = EEPROM.read(20 + (engine * 2) + j);
             if (value < 128)
@@ -138,12 +142,12 @@ void loop() {
             }
           }
        }
-       for (int j = 0; j < 2; j++)
+       for (int j = 0; j < KICK_PRIMARY_PARAM_COUNT; j++)
        {
           instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
        }
        initializeKickSettingsPersistence();
-       for (int j = 0; j < 2; j++)
+       for (int j = 0; j < KICK_PRIMARY_PARAM_COUNT; j++)
        {
           instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
        }
@@ -158,13 +162,13 @@ void loop() {
        hasBeenLoad = true;
   }
   
-  checkButton(); // get button state and toggle the second kick control page
-  checkInterface(); // get pot and cv values, mix these depending on the selected instrument and constrain these to 0-127 values
-  selectInstrument(); // keep the modeled kick selected and display leds
+  checkButton();
+  checkInterface();
+  selectInstrument();
   setControlValues();
   saveKickSettingsIfNeeded();
-  controlInstrumentParams(); // use the cv and pot value to control the voice1 paramete for the current instrument 
-  trigInstrument(); // trig the modeled kick from the trigger input
+  controlInstrumentParams();
+  trigInstrument();
  
   /*
   Serial.println("AUDIO_CPU: ");

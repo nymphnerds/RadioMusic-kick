@@ -11,7 +11,7 @@ int kick909AccentCurve(int accent)
 
 void recallKickEngineParams()
 {
-    for (int j = 0; j < 2; j++)
+    for (int j = 0; j < KICK_PRIMARY_PARAM_COUNT; j++)
     {
         instrumentsParams[BASS_DRUM][j] = kickEngineParams[kickEngine][j];
     }
@@ -19,21 +19,21 @@ void recallKickEngineParams()
 
 int kickSettingsValueForSlot(int engine, int slot)
 {
-    if (slot < 4)
+    if (slot < KICK_ENGINE_PARAM_COUNT)
     {
         return kickEngineParams[engine][slot];
     }
-    return kickPage2Params[engine][slot - 4];
+    return kickPage2Params[engine][slot - KICK_ENGINE_PARAM_COUNT];
 }
 
 void setKickSettingsValueForSlot(int engine, int slot, int value)
 {
-    if (slot < 4)
+    if (slot < KICK_ENGINE_PARAM_COUNT)
     {
         kickEngineParams[engine][slot] = value;
         return;
     }
-    kickPage2Params[engine][slot - 4] = value;
+    kickPage2Params[engine][slot - KICK_ENGINE_PARAM_COUNT] = value;
 }
 
 int kickSettingsAddress(int offset)
@@ -52,9 +52,9 @@ void writeKickSettingByte(int address, byte value)
 byte calculateKickSettingsChecksum()
 {
     byte checksum = 0xA5 ^ KICK_SETTINGS_VERSION;
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             byte value = (byte)constrain(kickSettingsValueForSlot(engine, slot), 0, 127);
             checksum = (byte)((checksum << 1) | (checksum >> 7));
@@ -73,12 +73,12 @@ boolean loadKickSettingsFromEEPROM()
         return false;
     }
 
-    int loaded[2][6];
+    int loaded[KICK_ENGINE_COUNT][KICK_SETTINGS_SLOT_COUNT];
     byte checksum = 0xA5 ^ KICK_SETTINGS_VERSION;
     int address = kickSettingsAddress(3);
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             int value = EEPROM.read(address++);
             if (value < 0 || value > 127)
@@ -96,9 +96,9 @@ boolean loadKickSettingsFromEEPROM()
         return false;
     }
 
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             setKickSettingsValueForSlot(engine, slot, loaded[engine][slot]);
         }
@@ -108,9 +108,9 @@ boolean loadKickSettingsFromEEPROM()
 
 void captureObservedKickSettings()
 {
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             kickSettingsObserved[engine][slot] = kickSettingsValueForSlot(engine, slot);
         }
@@ -119,9 +119,9 @@ void captureObservedKickSettings()
 
 boolean kickSettingsHaveChanged()
 {
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             if (kickSettingsObserved[engine][slot] != kickSettingsValueForSlot(engine, slot))
             {
@@ -142,9 +142,9 @@ void saveKickSettings()
 {
     writeKickSettingByte(kickSettingsAddress(0), 0);
     int address = kickSettingsAddress(3);
-    for (int engine = 0; engine < 2; engine++)
+    for (int engine = 0; engine < KICK_ENGINE_COUNT; engine++)
     {
-        for (int slot = 0; slot < 6; slot++)
+        for (int slot = 0; slot < KICK_SETTINGS_SLOT_COUNT; slot++)
         {
             byte value = (byte)constrain(kickSettingsValueForSlot(engine, slot), 0, 127);
             writeKickSettingByte(address++, value);
@@ -215,7 +215,22 @@ void checkButton(){
             startCounter = false;
             if (shiftTimer < 3000 && modeChanged == false)
             {
-                kickEngine = kickEngine == KICK_ENGINE_808 ? KICK_ENGINE_909 : KICK_ENGINE_808;
+                if (kickEngine == KICK_ENGINE_909)
+                {
+                    kickEngine = KICK_ENGINE_808;
+                }
+                else if (kickEngine == KICK_ENGINE_808)
+                {
+                    kickEngine = KICK_ENGINE_HOT_909;
+                }
+                else if (kickEngine == KICK_ENGINE_HOT_909)
+                {
+                    kickEngine = KICK_ENGINE_DIRTY_808;
+                }
+                else
+                {
+                    kickEngine = KICK_ENGINE_909;
+                }
                 recallKickEngineParams();
                 kickControlsHoldUntilMove = true;
                 kickParam1HoldUntilMove = true;
@@ -327,7 +342,7 @@ void controlInstrumentParams(){
     }
     voice1.controlChange(35, param1CV, 1);
     voice1.controlChange(36, param2CV, 1);
-    voice1.controlChange(43, kickEngine == KICK_ENGINE_909 ? 1 : 0, 1);
+    voice1.controlChange(43, kickEngine, 1);
     voice1.controlChange(44, kick909AccentCurve(kickLatchedAccent), 1);
 }
 
@@ -399,8 +414,8 @@ void selectInstrument(){
     instrument = BASS_DRUM;
     digitalWrite(LED3, kickEngine == KICK_ENGINE_909 ? HIGH : LOW);
     digitalWrite(LED2, kickEngine == KICK_ENGINE_808 ? HIGH : LOW);
-    digitalWrite(LED1, LOW);
-    digitalWrite(LED0, LOW);
+    digitalWrite(LED1, kickEngine == KICK_ENGINE_HOT_909 ? HIGH : LOW);
+    digitalWrite(LED0, kickEngine == KICK_ENGINE_DIRTY_808 ? HIGH : LOW);
     voice1.controlChange(28, 15, 1);
 }
 
